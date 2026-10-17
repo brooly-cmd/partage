@@ -4,6 +4,7 @@
    grâce au « standardiste » gratuit PeerJS.
    Mission 7 : on s'envoie du texte en instantané par ce tuyau.
    Mission 8 : on s'envoie aussi des petits fichiers (bouton « + » ou glisser-déposer).
+   Mission 9 : les gros fichiers partent en petits morceaux, avec une barre de progression.
    ========================================================= */
 "use strict";
 
@@ -19,6 +20,8 @@ const etat = {
   invites: [],          // (hôte) les invités connectés : { nom, conn }
   numeroInvite: 0,      // (hôte) pour nommer « Invité 1 », « Invité 2 »…
   connHote: null,       // (invité) le tuyau direct vers l'hôte
+  envois: new Map(),    // les fichiers en train de partir, rangés par numéro d'envoi
+  recus: new Map(),     // les fichiers en train d'arriver, rangés par numéro d'envoi
 };
 
 // Salle : 8 personnes maximum, hôte compris
@@ -125,6 +128,7 @@ function raccrocher() {
   etat.invites = [];
   etat.numeroInvite = 0;
   etat.connHote = null;
+  oublierTransferts();
 }
 
 // Vérifie qu'on peut se connecter. Renvoie la clé d'erreur, ou null si tout va bien.
@@ -219,11 +223,12 @@ function accueillirInvite(conn) {
       if (msg.type === "texte" && typeof msg.texte === "string") {
         ajouterAuFil("hote", { type: "texte", de: invite.nom, texte: msg.texte });
       }
-      if (msg.type === "fichier") recevoirFichier("hote", invite.nom, msg);
+      recevoirPaquetFichier("hote", invite.nom, conn, msg);
     });
 
     surveillerCoupure(conn, () => {
       etat.invites = etat.invites.filter((i) => i !== invite);
+      abandonnerReceptions(conn); // ce qu'il était en train d'envoyer n'arrivera jamais
       if (etat.peer) majPresence();
     });
   });
@@ -253,6 +258,7 @@ function fermerSalleHote(toutDeSuite) {
   etat.peer = null;
   etat.invites = [];
   etat.codeHote = null;
+  oublierTransferts();
   if (!peer) return;
   if (toutDeSuite) peer.destroy();
   else setTimeout(() => peer.destroy(), 300);
@@ -304,7 +310,7 @@ function rejoindreSalle(code) {
       if (msg.type === "texte" && typeof msg.texte === "string") {
         ajouterAuFil("invite", { type: "texte", de: "Hôte", texte: msg.texte });
       }
-      if (msg.type === "fichier") recevoirFichier("invite", "Hôte", msg);
+      recevoirPaquetFichier("invite", "Hôte", conn, msg);
       if (msg.type === "fermee") {
         raccrocher();
         fermerAvecEffet("hoteFermeInvite");
@@ -441,12 +447,15 @@ function carteMessage(m) {
     nom.append(creer("small", "", m.taille));
     corps.append(nom, creer("span", "pourcent", m.pourcent + " %"));
     const barre = creer("div", "barre");
+    barre.setAttribute("role", "progressbar");
+    barre.setAttribute("aria-label", m.nom);
+    barre.setAttribute("aria-valuenow", m.pourcent);
     const rempli = creer("b");
     rempli.style.width = m.pourcent + "%";
     barre.append(rempli);
     const annuler = creer("button", "mini", "Annuler");
     annuler.type = "button";
-    annuler.addEventListener("click", () => retirer(carte));
+    annuler.addEventListener("click", () => (m.annuler ? m.annuler() : retirer(carte)));
     const actions = creer("div", "msg-actions");
     actions.append(annuler);
     carte.append(barre, creer("p", "msg-note", "Garde cet écran ouvert pendant l'envoi."), actions);
@@ -459,7 +468,8 @@ function carteMessage(m) {
     const reessayer = creer("button", "mini", "Réessayer");
     reessayer.type = "button";
     reessayer.addEventListener("click", () => {
-      carte.replaceWith(carteMessage({ ...m, type: "envoi", pourcent: 8 }));
+      if (m.reessayer) { retirer(carte); m.reessayer(); }
+      else carte.replaceWith(carteMessage({ ...m, type: "envoi", pourcent: 8 }));
     });
     const annuler = creer("button", "mini", "Annuler");
     annuler.type = "button";
@@ -502,8 +512,10 @@ const EXEMPLES = {
 function ajouterAuFil(role, m) {
   const fil = $(role === "hote" ? "fil-hote" : "fil-invite");
   fil.querySelector(".vide")?.remove();
-  fil.append(carteMessage({ heure: heureMaintenant(), ...m }));
+  const carte = carteMessage({ heure: heureMaintenant(), ...m });
+  fil.append(carte);
   fil.scrollTop = fil.scrollHeight;
+  return carte;
 }
 
 function heureMaintenant() {
@@ -707,10 +719,19 @@ document.querySelectorAll("[data-compose]").forEach((form) => {
   });
 });
 
-/* ---------- Envoyer un petit fichier (mission 8) ---------- */
-// Pour l'instant le fichier part d'un seul bloc : on limite donc sa taille.
-// La mission 9 le découpera en petits morceaux et enlèvera cette limite.
-const TAILLE_MAX = 20 * 1024 * 1024; // 20 Mo
+/* ---------- Envoyer un fichier, petit ou gros (missions 8 et 9) ---------- */
+// Le fichier part en petits morceaux, comme un déménagement en plusieurs cartons :
+// on lit un morceau, on l'envoie, on attend qu'il y ait de la place dans le tuyau, puis le suivant.
+// Ainsi, le fichier entier n'est jamais chargé d'un coup en mémoire.
+const MORCEAU = 64 * 1024;             // 64 Ko par morceau
+const TUYAU_PLEIN = 1024 * 1024;       // on ne laisse jamais plus d'1 Mo en attente dans le tuyau
+const PAQUET_RECU = 16 * 1024 * 1024;  // à l'arrivée, on range les morceaux par paquets de 16 Mo
+// L'iPhone a peu de mémoire pour les pages web : au-delà de 500 Mo, il refuse de recevoir
+// (le fichier entier doit tenir dans la mémoire de Safari avant d'être téléchargé).
+const LIMITE_RECEPTION = estIOS ? 500 * 1024 * 1024 : Infinity;
+
+const TEXTE_TROP_GROS_ENVOI = "Ce fichier est trop gros pour cet appareil. Essaie un fichier plus petit.";
+const TEXTE_TROP_GROS_RECU = "Ce fichier est trop gros pour être reçu sur cet appareil.";
 
 // « 2,4 Mo », « 310 Ko », « 512 o »
 function tailleLisible(octets) {
@@ -718,6 +739,14 @@ function tailleLisible(octets) {
   if (octets < 1024 * 1024) return Math.round(octets / 1024) + " Ko";
   const mo = octets / (1024 * 1024);
   return mo.toLocaleString("fr-FR", { maximumFractionDigits: mo < 10 ? 1 : 0 }) + " Mo";
+}
+
+// « 318 / 512 Mo » (ou « 800 Ko / 2,4 Mo » quand les unités diffèrent)
+function tailleProgression(fait, total) {
+  const a = tailleLisible(fait);
+  const b = tailleLisible(total);
+  const unite = (t) => t.slice(t.lastIndexOf(" "));
+  return (unite(a) === unite(b) ? a.slice(0, a.lastIndexOf(" ")) : a) + " / " + b;
 }
 
 // L'extension du nom (« photo.jpg » → « JPG »), pour la petite pastille de la carte
@@ -731,46 +760,264 @@ function carteFichier(de, nom, blob) {
   return { type: "fichier", de, nom, blob, ext: extension(nom), taille: tailleLisible(blob.size) };
 }
 
+// La carte « en cours » : barre de progression, pourcentage et bouton Annuler
+function carteEnCours(de, nom, taille, annuler) {
+  return {
+    type: "envoi", de, nom, ext: extension(nom), heure: heureMaintenant(),
+    taille: tailleProgression(0, taille), pourcent: 0, annuler,
+  };
+}
+
+// Fait avancer la barre (seulement quand le pourcentage change, pour ne pas ralentir la page)
+function majProgression(carte, fait, total) {
+  const pourcent = total ? Math.floor((fait * 100) / total) : 100;
+  if (carte.dataset.pourcent === String(pourcent)) return;
+  carte.dataset.pourcent = pourcent;
+  carte.querySelector(".pourcent").textContent = pourcent + " %";
+  carte.querySelector(".barre b").style.width = pourcent + "%";
+  carte.querySelector(".barre").setAttribute("aria-valuenow", pourcent);
+  carte.querySelector(".msg-fichier small").textContent = tailleProgression(fait, total);
+}
+
+// Remplace une carte « en cours » par la carte finale avec le bouton Télécharger
+function terminerCarte(carte, de, nom, blob, heure) {
+  carte.replaceWith(carteMessage({ ...carteFichier(de, nom, blob), heure }));
+}
+
+// Un numéro d'envoi au hasard, pour reconnaître les morceaux d'un même fichier
+function nouvelId() {
+  const n = new Uint32Array(2);
+  crypto.getRandomValues(n);
+  return n[0].toString(36) + n[1].toString(36);
+}
+
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Le tuyau est-il encore trop rempli ? (PeerJS garde aussi sa propre file d'attente)
+function tuyauPlein(conn) {
+  const canal = conn.dataChannel;
+  return conn.bufferSize > 0 || (canal && canal.bufferedAmount > TUYAU_PLEIN);
+}
+
+// Attend que le tuyau ait de nouveau de la place. On écoute le signal du tuyau (« bufferedamountlow »)
+// plutôt qu'un minuteur, car un onglet caché derrière un autre a ses minuteurs ralentis par le navigateur.
+function attendrePlace(conn) {
+  const canal = conn.dataChannel;
+  if (!canal || !tuyauPlein(conn)) return Promise.resolve();
+  if (conn.bufferSize > 0) return pause(50); // c'est PeerJS qui fait patienter : on repasse vite
+  canal.bufferedAmountLowThreshold = TUYAU_PLEIN / 2;
+  return new Promise((ok) => {
+    const fini = () => {
+      canal.removeEventListener("bufferedamountlow", fini);
+      canal.removeEventListener("close", fini);
+      clearTimeout(secours);
+      ok();
+    };
+    const secours = setTimeout(fini, 2000); // au cas où le signal ne viendrait jamais
+    canal.addEventListener("bufferedamountlow", fini);
+    canal.addEventListener("close", fini);
+  });
+}
+
+// Envoie le même paquet à tous ceux qui reçoivent ce fichier
+function diffuser(envoi, paquet) {
+  envoi.cibles.forEach((conn) => {
+    if (conn.open) conn.send(paquet);
+  });
+}
+
+// Retire ceux dont le tuyau s'est coupé pendant l'envoi
+function retirerCoupes(envoi) {
+  envoi.cibles.forEach((conn) => {
+    if (!conn.open) {
+      envoi.cibles.delete(conn);
+      envoi.coupe = true;
+    }
+  });
+}
+
+// Les fichiers partent un par un, dans l'ordre (comme une file d'attente au guichet)
+let fileEnvois = Promise.resolve();
+
 // L'hôte l'envoie à chaque invité ; l'invité l'envoie à l'hôte (comme le texte)
-async function envoyerFichier(fichier) {
+function envoyerFichier(fichier) {
   const role = etat.ecran;
   if (role !== "hote" && role !== "invite") return;
-  if (fichier.size > TAILLE_MAX) {
-    afficherToast("Ce fichier est trop gros pour cet appareil. Essaie un fichier plus petit.");
-    return;
-  }
   if (role === "invite" && (!etat.connHote || !etat.connHote.open)) {
     afficherToast(ERREURS.reseau);
     return;
   }
-  let donnees;
-  try {
-    donnees = await fichier.arrayBuffer();
-  } catch {
-    afficherToast("Ce fichier est trop gros pour cet appareil. Essaie un fichier plus petit.");
+  const cibles = role === "hote" ? etat.invites.map((i) => i.conn).filter((c) => c.open) : [etat.connHote];
+  if (cibles.length === 0) {
+    // Personne dans la salle pour l'instant : le fichier apparaît seulement chez moi
+    ajouterAuFil(role, carteFichier("Moi", fichier.name, fichier));
     return;
   }
-  if (etat.ecran !== role) return; // la salle a fermé pendant la lecture du fichier
-  const paquet = { type: "fichier", nom: fichier.name, mime: fichier.type, donnees };
-  if (role === "hote") {
-    etat.invites.forEach((i) => {
-      if (i.conn.open) i.conn.send(paquet);
-    });
-  } else {
-    etat.connHote.send(paquet);
-  }
-  ajouterAuFil(role, carteFichier("Moi", fichier.name, fichier));
+  const envoi = { id: nouvelId(), fichier, role, peer: etat.peer, cibles: new Set(cibles), coupe: false, annule: false };
+  envoi.carte = ajouterAuFil(role, carteEnCours("Moi", fichier.name, fichier.size, () => annulerEnvoi(envoi)));
+  envoi.heure = envoi.carte.querySelector("time").textContent;
+  etat.envois.set(envoi.id, envoi);
+  fileEnvois = fileEnvois.then(() => transmettre(envoi));
 }
 
-// Un fichier arrive : on recolle ses octets en « Blob » (un fichier gardé en mémoire)
-function recevoirFichier(role, de, msg) {
-  let donnees = msg.donnees;
-  if (ArrayBuffer.isView(donnees)) donnees = donnees.buffer.slice(donnees.byteOffset, donnees.byteOffset + donnees.byteLength);
-  if (typeof msg.nom !== "string" || !(donnees instanceof ArrayBuffer)) return;
-  const type = typeof msg.mime === "string" ? msg.mime : "";
-  const blob = new Blob([donnees], { type });
-  ajouterAuFil(role, carteFichier(de, msg.nom || "fichier", blob));
-  afficherToast("Fichier reçu. Télécharge-le avant la fermeture.");
+// « Annuler » chez celui qui envoie : on prévient les autres et on retire la carte
+function annulerEnvoi(envoi) {
+  envoi.annule = true;
+  etat.envois.delete(envoi.id);
+  diffuser(envoi, { type: "annule", id: envoi.id });
+  retirer(envoi.carte);
+}
+
+async function transmettre(envoi) {
+  const { fichier, id } = envoi;
+  const salleOuverte = () => etat.peer === envoi.peer && etat.ecran === envoi.role;
+  const continuer = () => !envoi.annule && salleOuverte() && envoi.cibles.size > 0;
+  if (!continuer()) return;
+
+  diffuser(envoi, { type: "fichier-debut", id, nom: fichier.name, mime: fichier.type, taille: fichier.size });
+  let envoye = 0;
+  let lectureRatee = false;
+  try {
+    while (envoye < fichier.size) {
+      retirerCoupes(envoi);
+      // On attend que les tuyaux se vident un peu avant d'ajouter un morceau
+      while (continuer() && [...envoi.cibles].some(tuyauPlein)) {
+        await Promise.all([...envoi.cibles].map(attendrePlace));
+        retirerCoupes(envoi);
+      }
+      if (!continuer()) break;
+      const donnees = await fichier.slice(envoye, envoye + MORCEAU).arrayBuffer();
+      if (!continuer()) break;
+      diffuser(envoi, { type: "morceau", id, donnees });
+      envoye += donnees.byteLength;
+      majProgression(envoi.carte, envoye, fichier.size);
+    }
+    retirerCoupes(envoi);
+  } catch {
+    lectureRatee = true; // le fichier n'a pas pu être lu (supprimé, ou trop gros pour l'appareil)
+  }
+
+  etat.envois.delete(id);
+  if (envoi.annule || !salleOuverte()) return; // carte déjà retirée, ou salle fermée
+
+  if (!lectureRatee && envoye >= fichier.size && envoi.cibles.size > 0) {
+    diffuser(envoi, { type: "fichier-fin", id });
+    terminerCarte(envoi.carte, "Moi", fichier.name, fichier, envoi.heure);
+    return;
+  }
+  if (lectureRatee || envoi.coupe) {
+    // Le tuyau s'est coupé (ou le fichier est illisible) : on propose de réessayer
+    diffuser(envoi, { type: "annule", id });
+    const carte = carteMessage({
+      type: "interrompu", de: "Moi", heure: envoi.heure, ext: extension(fichier.name), nom: fichier.name,
+      reessayer: () => envoyerFichier(fichier),
+    });
+    envoi.carte.replaceWith(carte);
+    if (lectureRatee) afficherToast(TEXTE_TROP_GROS_ENVOI);
+    return;
+  }
+  // Tous les autres ont annulé ou refusé : le fichier reste seulement chez moi
+  terminerCarte(envoi.carte, "Moi", fichier.name, fichier, envoi.heure);
+}
+
+/* ---------- Recevoir un fichier, morceau par morceau ---------- */
+// Les paquets possibles : « fichier-debut », « morceau », « fichier-fin », « annule », « refus »
+function recevoirPaquetFichier(role, de, conn, msg) {
+  const id = msg.id;
+  if (typeof id !== "string") return;
+
+  if (msg.type === "annule" || msg.type === "refus") {
+    // Celui qui recevait mon fichier n'en veut plus
+    etat.envois.get(id)?.cibles.delete(conn);
+    // Celui qui m'envoyait un fichier l'a annulé
+    const recu = etat.recus.get(id);
+    if (recu && recu.conn === conn) {
+      etat.recus.delete(id);
+      retirer(recu.carte);
+    }
+    return;
+  }
+
+  if (msg.type === "fichier-debut") {
+    if (typeof msg.nom !== "string" || typeof msg.taille !== "number" || etat.recus.has(id)) return;
+    if (msg.taille > LIMITE_RECEPTION) {
+      conn.send({ type: "refus", id });
+      afficherToast(TEXTE_TROP_GROS_RECU);
+      return;
+    }
+    const recu = {
+      id, conn, de, nom: msg.nom || "fichier", mime: typeof msg.mime === "string" ? msg.mime : "",
+      taille: msg.taille, recu: 0, morceaux: [], tailleMorceaux: 0, paquets: [],
+    };
+    recu.carte = ajouterAuFil(role, carteEnCours(de, recu.nom, recu.taille, () => {
+      etat.recus.delete(id);
+      if (conn.open) conn.send({ type: "annule", id });
+      retirer(recu.carte);
+    }));
+    recu.heure = recu.carte.querySelector("time").textContent;
+    etat.recus.set(id, recu);
+    return;
+  }
+
+  const recu = etat.recus.get(id);
+  if (!recu || recu.conn !== conn) return;
+
+  if (msg.type === "morceau") {
+    let donnees = msg.donnees;
+    if (ArrayBuffer.isView(donnees)) donnees = donnees.buffer.slice(donnees.byteOffset, donnees.byteOffset + donnees.byteLength);
+    if (!(donnees instanceof ArrayBuffer)) return;
+    recu.morceaux.push(donnees);
+    recu.tailleMorceaux += donnees.byteLength;
+    recu.recu += donnees.byteLength;
+    try {
+      // Tous les 16 Mo, on range les morceaux dans un « Blob » (un fichier gardé par le navigateur),
+      // que l'ordinateur peut mettre sur son disque au lieu de tout garder en mémoire vive
+      if (recu.tailleMorceaux >= PAQUET_RECU) {
+        recu.paquets.push(new Blob(recu.morceaux));
+        recu.morceaux = [];
+        recu.tailleMorceaux = 0;
+      }
+    } catch {
+      return echecReception(recu);
+    }
+    majProgression(recu.carte, recu.recu, recu.taille);
+    return;
+  }
+
+  if (msg.type === "fichier-fin") {
+    etat.recus.delete(id);
+    let blob;
+    try {
+      blob = new Blob([...recu.paquets, ...recu.morceaux], { type: recu.mime });
+    } catch {
+      return echecReception(recu);
+    }
+    terminerCarte(recu.carte, de, recu.nom, blob, recu.heure);
+    afficherToast("Fichier reçu. Télécharge-le avant la fermeture.");
+  }
+}
+
+// L'appareil n'a plus assez de place pour garder le fichier : on arrête et on l'explique
+function echecReception(recu) {
+  etat.recus.delete(recu.id);
+  if (recu.conn.open) recu.conn.send({ type: "refus", id: recu.id });
+  retirer(recu.carte);
+  afficherToast(TEXTE_TROP_GROS_RECU);
+}
+
+// Un invité est parti en plein envoi : ses fichiers à moitié arrivés sont jetés
+function abandonnerReceptions(conn) {
+  etat.recus.forEach((recu) => {
+    if (recu.conn !== conn) return;
+    etat.recus.delete(recu.id);
+    retirer(recu.carte);
+  });
+}
+
+// La salle ferme : on oublie tout ce qui était en route
+function oublierTransferts() {
+  etat.envois.clear();
+  etat.recus.clear();
 }
 
 // « Télécharger » : on fabrique un lien temporaire vers le fichier en mémoire et on clique dessus
