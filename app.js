@@ -5,6 +5,7 @@
    Mission 7 : on s'envoie du texte en instantané par ce tuyau.
    Mission 8 : on s'envoie aussi des petits fichiers (bouton « + » ou glisser-déposer).
    Mission 9 : les gros fichiers partent en petits morceaux, avec une barre de progression.
+   Mission 10 : l'hôte fait suivre aux autres invités ce qu'il reçoit d'un invité (comme un facteur).
    ========================================================= */
 "use strict";
 
@@ -222,6 +223,8 @@ function accueillirInvite(conn) {
       if (!etat.peer || !msg) return;
       if (msg.type === "texte" && typeof msg.texte === "string") {
         ajouterAuFil("hote", { type: "texte", de: invite.nom, texte: msg.texte });
+        // L'hôte fait suivre le texte aux autres invités, avec le nom de celui qui l'a écrit
+        autresInvites(conn).forEach((c) => c.send({ type: "texte", de: invite.nom, texte: msg.texte }));
       }
       recevoirPaquetFichier("hote", invite.nom, conn, msg);
     });
@@ -229,9 +232,15 @@ function accueillirInvite(conn) {
     surveillerCoupure(conn, () => {
       etat.invites = etat.invites.filter((i) => i !== invite);
       abandonnerReceptions(conn); // ce qu'il était en train d'envoyer n'arrivera jamais
+      oublierCible(conn);         // et il ne recevra plus rien
       if (etat.peer) majPresence();
     });
   });
+}
+
+// (hôte) Les tuyaux ouverts vers tous les invités, sauf celui qui vient d'envoyer
+function autresInvites(saufConn) {
+  return etat.invites.map((i) => i.conn).filter((c) => c !== saufConn && c.open);
 }
 
 // « 1 personne connectée », la liste des invités, et la même info envoyée à chaque invité
@@ -242,7 +251,7 @@ function majPresence() {
   const n = etat.invites.length;
   $("etat-hote").textContent = texteNombre(n);
   $("invites-hote").hidden = n === 0;
-  $("liste-invites").textContent = etat.invites.map((i) => i.nom).join(", ");
+  $("liste-invites").textContent = etat.invites.map((i) => i.nom).join(" · ");
   etat.invites.forEach((i) => {
     if (i.conn.open) i.conn.send({ type: "nombre", n });
   });
@@ -307,10 +316,12 @@ function rejoindreSalle(code) {
         ouvrirSalleInvite(code);
       }
       if (msg.type === "nombre") $("etat-invite").textContent = texteNombre(msg.n);
+      // « de » : le nom de l'invité qui a écrit, quand l'hôte fait suivre son message
+      const de = typeof msg.de === "string" ? msg.de : "Hôte";
       if (msg.type === "texte" && typeof msg.texte === "string") {
-        ajouterAuFil("invite", { type: "texte", de: "Hôte", texte: msg.texte });
+        ajouterAuFil("invite", { type: "texte", de, texte: msg.texte });
       }
-      recevoirPaquetFichier("invite", "Hôte", conn, msg);
+      recevoirPaquetFichier("invite", de, conn, msg);
       if (msg.type === "fermee") {
         raccrocher();
         fermerAvecEffet("hoteFermeInvite");
@@ -726,6 +737,10 @@ document.querySelectorAll("[data-compose]").forEach((form) => {
 const MORCEAU = 64 * 1024;             // 64 Ko par morceau
 const TUYAU_PLEIN = 1024 * 1024;       // on ne laisse jamais plus d'1 Mo en attente dans le tuyau
 const PAQUET_RECU = 16 * 1024 * 1024;  // à l'arrivée, on range les morceaux par paquets de 16 Mo
+// Quand un invité envoie, l'hôte fait suivre aux autres. Pour que l'hôte ne soit jamais débordé,
+// il dit « bien reçu » (accusé de réception) tous les 1 Mo, et l'invité n'a jamais plus de 4 Mo d'avance.
+const ACCUSE = 1024 * 1024;
+const AVANCE_MAX = 4 * 1024 * 1024;
 // L'iPhone a peu de mémoire pour les pages web : au-delà de 500 Mo, il refuse de recevoir
 // (le fichier entier doit tenir dans la mémoire de Safari avant d'être téléchargé).
 const LIMITE_RECEPTION = estIOS ? 500 * 1024 * 1024 : Infinity;
@@ -836,6 +851,14 @@ function retirerCoupes(envoi) {
   });
 }
 
+// (invité) Attend le « bien reçu » de l'hôte, ou 2 secondes au plus pour revérifier
+function attendreAccuse(envoi) {
+  return new Promise((ok) => {
+    const secours = setTimeout(ok, 2000);
+    envoi.reveil = () => { clearTimeout(secours); envoi.reveil = null; ok(); };
+  });
+}
+
 // Les fichiers partent un par un, dans l'ordre (comme une file d'attente au guichet)
 let fileEnvois = Promise.resolve();
 
@@ -853,7 +876,10 @@ function envoyerFichier(fichier) {
     ajouterAuFil(role, carteFichier("Moi", fichier.name, fichier));
     return;
   }
-  const envoi = { id: nouvelId(), fichier, role, peer: etat.peer, cibles: new Set(cibles), coupe: false, annule: false };
+  const envoi = {
+    id: nouvelId(), fichier, role, peer: etat.peer, cibles: new Set(cibles), coupe: false, annule: false,
+    accuse: 0, // (invité) combien d'octets l'hôte a déjà bien reçus et fait suivre
+  };
   envoi.carte = ajouterAuFil(role, carteEnCours("Moi", fichier.name, fichier.size, () => annulerEnvoi(envoi)));
   envoi.heure = envoi.carte.querySelector("time").textContent;
   etat.envois.set(envoi.id, envoi);
@@ -863,6 +889,7 @@ function envoyerFichier(fichier) {
 // « Annuler » chez celui qui envoie : on prévient les autres et on retire la carte
 function annulerEnvoi(envoi) {
   envoi.annule = true;
+  envoi.reveil?.();
   etat.envois.delete(envoi.id);
   diffuser(envoi, { type: "annule", id: envoi.id });
   retirer(envoi.carte);
@@ -883,6 +910,11 @@ async function transmettre(envoi) {
       // On attend que les tuyaux se vident un peu avant d'ajouter un morceau
       while (continuer() && [...envoi.cibles].some(tuyauPlein)) {
         await Promise.all([...envoi.cibles].map(attendrePlace));
+        retirerCoupes(envoi);
+      }
+      // L'invité attend que l'hôte suive (il fait passer le fichier aux autres en même temps)
+      while (continuer() && envoi.role === "invite" && envoye - envoi.accuse > AVANCE_MAX) {
+        await attendreAccuse(envoi);
         retirerCoupes(envoi);
       }
       if (!continuer()) break;
@@ -921,40 +953,61 @@ async function transmettre(envoi) {
 }
 
 /* ---------- Recevoir un fichier, morceau par morceau ---------- */
-// Les paquets possibles : « fichier-debut », « morceau », « fichier-fin », « annule », « refus »
+// Les paquets possibles : « fichier-debut », « morceau », « fichier-fin », « annule », « refus », « accuse »
+// L'hôte qui reçoit le fichier d'un invité le fait suivre, morceau par morceau, aux autres invités (« relais »).
+// Il peut faire suivre sans garder le fichier pour lui (« garder » = false) : s'il a annulé, ou s'il manque de place.
 function recevoirPaquetFichier(role, de, conn, msg) {
   const id = msg.id;
   if (typeof id !== "string") return;
 
+  if (msg.type === "accuse") {
+    // (invité) L'hôte a bien reçu et fait suivre mon fichier jusque-là
+    const envoi = etat.envois.get(id);
+    if (envoi && typeof msg.n === "number") {
+      envoi.accuse = Math.max(envoi.accuse, msg.n);
+      envoi.reveil?.();
+    }
+    return;
+  }
+
   if (msg.type === "annule" || msg.type === "refus") {
     // Celui qui recevait mon fichier n'en veut plus
     etat.envois.get(id)?.cibles.delete(conn);
-    // Celui qui m'envoyait un fichier l'a annulé
     const recu = etat.recus.get(id);
-    if (recu && recu.conn === conn) {
+    if (!recu) return;
+    if (recu.conn === conn) {
+      // Celui qui m'envoyait un fichier l'a annulé : on prévient aussi ceux à qui on le faisait suivre
       etat.recus.delete(id);
-      retirer(recu.carte);
+      recu.relais.forEach((c) => { if (c.open) c.send({ type: "annule", id }); });
+      if (recu.garder) retirer(recu.carte);
+    } else if (recu.relais.delete(conn)) {
+      // Un invité ne veut plus du fichier que je lui faisais suivre
+      lacherSiPersonne(recu);
     }
     return;
   }
 
   if (msg.type === "fichier-debut") {
     if (typeof msg.nom !== "string" || typeof msg.taille !== "number" || etat.recus.has(id)) return;
-    if (msg.taille > LIMITE_RECEPTION) {
+    const nom = msg.nom || "fichier";
+    const mime = typeof msg.mime === "string" ? msg.mime : "";
+    // L'hôte fait suivre l'annonce aux autres invités, avec le nom de l'expéditeur
+    const relais = new Set(role === "hote" ? autresInvites(conn) : []);
+    relais.forEach((c) => c.send({ type: "fichier-debut", id, nom, mime, taille: msg.taille, de }));
+    const tropGros = msg.taille > LIMITE_RECEPTION;
+    if (tropGros) afficherToast(TEXTE_TROP_GROS_RECU);
+    if (tropGros && relais.size === 0) {
       conn.send({ type: "refus", id });
-      afficherToast(TEXTE_TROP_GROS_RECU);
       return;
     }
     const recu = {
-      id, conn, de, nom: msg.nom || "fichier", mime: typeof msg.mime === "string" ? msg.mime : "",
+      id, conn, de, nom, mime, garder: !tropGros, relais, accuse: 0,
       taille: msg.taille, recu: 0, morceaux: [], tailleMorceaux: 0, paquets: [],
     };
-    recu.carte = ajouterAuFil(role, carteEnCours(de, recu.nom, recu.taille, () => {
-      etat.recus.delete(id);
-      if (conn.open) conn.send({ type: "annule", id });
-      retirer(recu.carte);
-    }));
-    recu.heure = recu.carte.querySelector("time").textContent;
+    if (recu.garder) {
+      recu.carte = ajouterAuFil(role, carteEnCours(de, nom, recu.taille, () => arreterDeGarder(recu, "annule")));
+      recu.heure = recu.carte.querySelector("time").textContent;
+    }
     etat.recus.set(id, recu);
     return;
   }
@@ -966,9 +1019,12 @@ function recevoirPaquetFichier(role, de, conn, msg) {
     let donnees = msg.donnees;
     if (ArrayBuffer.isView(donnees)) donnees = donnees.buffer.slice(donnees.byteOffset, donnees.byteOffset + donnees.byteLength);
     if (!(donnees instanceof ArrayBuffer)) return;
+    recu.recu += donnees.byteLength;
+    if (recu.relais.size > 0) faireSuivre(recu, { type: "morceau", id, donnees });
+    if (role === "hote" && recu.recu - recu.accuse >= ACCUSE) envoyerAccuse(recu);
+    if (!recu.garder) return;
     recu.morceaux.push(donnees);
     recu.tailleMorceaux += donnees.byteLength;
-    recu.recu += donnees.byteLength;
     try {
       // Tous les 16 Mo, on range les morceaux dans un « Blob » (un fichier gardé par le navigateur),
       // que l'ordinateur peut mettre sur son disque au lieu de tout garder en mémoire vive
@@ -986,31 +1042,81 @@ function recevoirPaquetFichier(role, de, conn, msg) {
 
   if (msg.type === "fichier-fin") {
     etat.recus.delete(id);
+    if (recu.relais.size > 0) faireSuivre(recu, { type: "fichier-fin", id });
+    if (!recu.garder) return;
     let blob;
     try {
       blob = new Blob([...recu.paquets, ...recu.morceaux], { type: recu.mime });
     } catch {
       return echecReception(recu);
     }
-    terminerCarte(recu.carte, de, recu.nom, blob, recu.heure);
+    terminerCarte(recu.carte, recu.de, recu.nom, blob, recu.heure);
     afficherToast("Fichier reçu. Télécharge-le avant la fermeture.");
   }
 }
 
+// (hôte) Fait suivre un paquet aux invités qui reçoivent ce fichier par moi
+function faireSuivre(recu, paquet) {
+  recu.relais.forEach((c) => {
+    if (c.open) c.send(paquet);
+    else recu.relais.delete(c);
+  });
+  lacherSiPersonne(recu);
+}
+
+// (hôte) Dit « bien reçu » à l'expéditeur, mais seulement quand les tuyaux vers les autres
+// ont de la place : ainsi l'expéditeur ralentit au rythme du plus lent, et rien ne s'entasse chez l'hôte
+async function envoyerAccuse(recu) {
+  if (recu.accuseEnCours) return;
+  recu.accuseEnCours = true;
+  const pleins = () => [...recu.relais].filter((c) => c.open && tuyauPlein(c));
+  while (etat.recus.get(recu.id) === recu && pleins().length > 0) {
+    await Promise.all(pleins().map(attendrePlace));
+  }
+  recu.accuseEnCours = false;
+  if (etat.recus.get(recu.id) !== recu || !recu.conn.open) return;
+  recu.accuse = recu.recu;
+  recu.conn.send({ type: "accuse", id: recu.id, n: recu.recu });
+}
+
+// Je ne garde plus le fichier pour moi (annulé, ou plus de place) ;
+// je continue de le faire suivre aux autres s'il y en a
+function arreterDeGarder(recu, raison) {
+  if (recu.garder) retirer(recu.carte);
+  recu.garder = false;
+  recu.morceaux = [];
+  recu.paquets = [];
+  recu.tailleMorceaux = 0;
+  lacherSiPersonne(recu, raison);
+}
+
+// Plus personne ne veut ce fichier (ni moi, ni les autres) : on dit à l'expéditeur d'arrêter
+function lacherSiPersonne(recu, raison = "refus") {
+  if (recu.garder || recu.relais.size > 0 || etat.recus.get(recu.id) !== recu) return;
+  etat.recus.delete(recu.id);
+  if (recu.conn.open) recu.conn.send({ type: raison, id: recu.id });
+}
+
 // L'appareil n'a plus assez de place pour garder le fichier : on arrête et on l'explique
 function echecReception(recu) {
-  etat.recus.delete(recu.id);
-  if (recu.conn.open) recu.conn.send({ type: "refus", id: recu.id });
-  retirer(recu.carte);
+  arreterDeGarder(recu, "refus");
   afficherToast(TEXTE_TROP_GROS_RECU);
 }
 
-// Un invité est parti en plein envoi : ses fichiers à moitié arrivés sont jetés
+// Un invité est parti en plein envoi : ses fichiers à moitié arrivés sont jetés, chez moi et chez les autres
 function abandonnerReceptions(conn) {
   etat.recus.forEach((recu) => {
     if (recu.conn !== conn) return;
     etat.recus.delete(recu.id);
-    retirer(recu.carte);
+    recu.relais.forEach((c) => { if (c.open) c.send({ type: "annule", id: recu.id }); });
+    if (recu.garder) retirer(recu.carte);
+  });
+}
+
+// (hôte) Un invité est parti : on arrête de lui faire suivre des fichiers
+function oublierCible(conn) {
+  etat.recus.forEach((recu) => {
+    if (recu.relais.delete(conn)) lacherSiPersonne(recu);
   });
 }
 

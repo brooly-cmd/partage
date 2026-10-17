@@ -189,9 +189,9 @@ body[data-ecran="invite"] .app { height: 100dvh; min-height: 620px; }
   min-height: 0;
 }
 .salle-hote {
-  grid-template-areas: "tete" "code" "etat" "bandeau" "fil" "bas" "sortie";
+  grid-template-rows: auto auto auto auto auto minmax(90px, 1fr) auto auto;
+  grid-template-areas: "tete" "code" "etat" "invites" "bandeau" "fil" "bas" "sortie";
 }
-.salle-hote .zone-invites { display: none; }
 .salle-invite {
   grid-template-areas: "tete" "etat" "bandeau" "info" "fil" "bas" "sortie";
 }
@@ -236,7 +236,8 @@ body[data-ecran="invite"] .app { height: 100dvh; min-height: 620px; }
 
 .etat { font-size: 13px; font-weight: 500; }
 .invites { font-size: 13px; }
-.invites b { display: block; font-weight: 700; margin-bottom: 2px; }
+.invites b { font-weight: 700; }
+.invites b::after { content: " :"; }
 .info { font-size: 13px; }
 
 .bandeau {
@@ -469,6 +470,8 @@ body[data-ecran="invite"] .app { height: 100dvh; min-height: 620px; }
     column-gap: 28px; row-gap: 12px;
   }
   .salle-hote .zone-invites { display: block; background: var(--verre); border-radius: 14px; padding: 10px 12px; }
+  .invites b { display: block; margin-bottom: 2px; }
+  .invites b::after { content: none; }
   .zone-sortie { align-self: end; }
   .plaques span { height: 50px; font-size: 28px; }
   .qr-ligne { flex-direction: column; align-items: flex-start; }
