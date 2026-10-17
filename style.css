@@ -269,7 +269,7 @@ body[data-ecran="invite"] .app { height: 100dvh; min-height: 620px; }
 .msg-tete b { font-weight: 700; }
 .msg-tete time { opacity: .85; }
 .msg-corps { display: flex; gap: 10px; align-items: center; }
-.msg-texte { flex: 1; min-width: 0; font-size: 14px; overflow-wrap: anywhere; }
+.msg-texte { flex: 1; min-width: 0; font-size: 14px; overflow-wrap: anywhere; white-space: pre-wrap; }
 .msg-fichier { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
 .msg-fichier small { display: block; font-size: 12px; font-weight: 500; opacity: .9; }
 .ft {
@@ -293,15 +293,17 @@ body[data-ecran="invite"] .app { height: 100dvh; min-height: 620px; }
   padding: 14px; text-align: center; font-size: 14px; font-weight: 500;
 }
 .compose {
-  display: flex; gap: 6px; align-items: center;
-  background: #fff; border-radius: 999px; padding: 5px;
+  display: flex; gap: 6px; align-items: flex-end;
+  background: #fff; border-radius: 26px; padding: 5px;
 }
-.compose input {
+.compose textarea {
   flex: 1; min-width: 0; border: 0; background: transparent;
-  color: var(--brun-nuit); font-size: 16px; padding: 0 4px; height: 42px;
+  color: var(--brun-nuit); font: inherit; font-size: 16px; line-height: 22px;
+  padding: 10px 4px; height: 42px; max-height: 120px;
+  resize: none; overflow-y: auto;
 }
-.compose input::placeholder { color: #9a6a4c; }
-.compose input:focus-visible { outline: none; }
+.compose textarea::placeholder { color: #9a6a4c; }
+.compose textarea:focus-visible { outline: none; }
 .compose:focus-within { box-shadow: 0 0 0 3px rgba(255,255,255,.7); }
 .rond {
   width: 42px; height: 42px; flex: none;

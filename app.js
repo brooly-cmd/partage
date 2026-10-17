@@ -2,6 +2,7 @@
    Partage éphémère — le petit moteur de la page
    Mission 6 : l'invité rejoint la salle de l'hôte pour de vrai,
    grâce au « standardiste » gratuit PeerJS.
+   Mission 7 : on s'envoie du texte en instantané par ce tuyau.
    ========================================================= */
 "use strict";
 
@@ -212,6 +213,13 @@ function accueillirInvite(conn) {
     conn.send({ type: "bienvenue", nom: invite.nom });
     majPresence();
 
+    conn.on("data", (msg) => {
+      if (!etat.peer || !msg) return;
+      if (msg.type === "texte" && typeof msg.texte === "string") {
+        ajouterAuFil("hote", { type: "texte", de: invite.nom, texte: msg.texte });
+      }
+    });
+
     surveillerCoupure(conn, () => {
       etat.invites = etat.invites.filter((i) => i !== invite);
       if (etat.peer) majPresence();
@@ -291,6 +299,9 @@ function rejoindreSalle(code) {
         ouvrirSalleInvite(code);
       }
       if (msg.type === "nombre") $("etat-invite").textContent = texteNombre(msg.n);
+      if (msg.type === "texte" && typeof msg.texte === "string") {
+        ajouterAuFil("invite", { type: "texte", de: "Hôte", texte: msg.texte });
+      }
       if (msg.type === "fermee") {
         raccrocher();
         fermerAvecEffet("hoteFermeInvite");
@@ -397,9 +408,10 @@ function carteMessage(m) {
     const copier = creer("button", "mini", "Copier");
     copier.type = "button";
     copier.addEventListener("click", () => {
-      copierTexte(m.texte);
-      copier.textContent = "Copié ✓";
-      setTimeout(() => (copier.textContent = "Copier"), 1500);
+      copierTexte(m.texte).then(() => {
+        copier.textContent = "Copié ✓";
+        setTimeout(() => (copier.textContent = "Copier"), 1500);
+      }, () => {});
     });
     corps.append(copier);
     carte.append(corps);
@@ -480,8 +492,23 @@ const EXEMPLES = {
   ],
 };
 
+// Ajoute un message en bas du fil (en enlevant « Rien pour l'instant… ») et descend jusqu'à lui
+function ajouterAuFil(role, m) {
+  const fil = $(role === "hote" ? "fil-hote" : "fil-invite");
+  fil.querySelector(".vide")?.remove();
+  fil.append(carteMessage({ heure: heureMaintenant(), ...m }));
+  fil.scrollTop = fil.scrollHeight;
+}
+
+function heureMaintenant() {
+  return new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+}
+
 function remplirFil(role) {
   const fil = $(role === "hote" ? "fil-hote" : "fil-invite");
+  const zone = fil.parentElement.querySelector("textarea");
+  zone.value = "";
+  ajusterHauteur(zone);
   if (etat.avecExemples) fil.replaceChildren(...EXEMPLES[role].map(carteMessage));
   else fil.replaceChildren(messageVide(role));
 }
@@ -625,13 +652,55 @@ $("btn-nouvelle").addEventListener("click", creerSalle);
 
 $("btn-rester").addEventListener("click", () => ($("alerte-inactivite").hidden = true));
 
-// Envoyer et Ajouter un fichier : pas encore actifs (missions 7 et 8)
+/* ---------- Envoyer du texte ---------- */
+// L'hôte l'envoie à chaque invité ; l'invité l'envoie à l'hôte
+function envoyerTexte(texte) {
+  const paquet = { type: "texte", texte };
+  if (etat.ecran === "hote") {
+    etat.invites.forEach((i) => {
+      if (i.conn.open) i.conn.send(paquet);
+    });
+    ajouterAuFil("hote", { type: "texte", de: "Moi", texte });
+    return true;
+  }
+  if (!etat.connHote || !etat.connHote.open) {
+    afficherToast(ERREURS.reseau);
+    return false;
+  }
+  etat.connHote.send(paquet);
+  ajouterAuFil("invite", { type: "texte", de: "Moi", texte });
+  return true;
+}
+
+// La zone d'écriture grandit avec le texte (jusqu'à environ 5 lignes)
+function ajusterHauteur(zone) {
+  zone.style.height = "";
+  zone.style.height = Math.min(zone.scrollHeight, 120) + "px";
+}
+
 document.querySelectorAll("[data-compose]").forEach((form) => {
+  const zone = form.querySelector("textarea");
   form.addEventListener("submit", (e) => {
     e.preventDefault();
-    afficherToast("Démo : l'envoi de texte arrive à la mission 7.");
+    const texte = zone.value.trim();
+    if (!texte) return zone.focus();
+    if (envoyerTexte(texte)) {
+      zone.value = "";
+      ajusterHauteur(zone);
+      zone.focus();
+    }
+  });
+  zone.addEventListener("input", () => ajusterHauteur(zone));
+  // Entrée = Envoyer ; Maj + Entrée = aller à la ligne
+  zone.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+      e.preventDefault();
+      form.requestSubmit();
+    }
   });
 });
+
+// Ajouter un fichier : pas encore actif (mission 8)
 document.querySelectorAll("[data-ajout]").forEach((bouton) => {
   bouton.addEventListener("click", () => afficherToast("Démo : l'envoi de fichiers arrive à la mission 8."));
 });
