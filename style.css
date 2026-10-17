@@ -227,6 +227,7 @@ body[data-ecran="invite"] .app { height: 100dvh; min-height: 620px; }
 .duo .mini { flex: 1; }
 
 .etat { font-size: 13px; font-weight: 500; }
+.etat [data-rebours] { white-space: nowrap; } /* « Fermeture automatique dans … » reste d'un seul bloc */
 .invites { font-size: 13px; }
 .invites b { font-weight: 700; }
 .invites b::after { content: " :"; }

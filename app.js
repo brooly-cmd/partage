@@ -7,6 +7,7 @@
    Mission 9 : les gros fichiers partent en petits morceaux, avec une barre de progression.
    Mission 10 : l'hôte fait suivre aux autres invités ce qu'il reçoit d'un invité (comme un facteur).
    Mission 11 : quand la salle ferme (ou qu'on la quitte), tout son contenu est effacé de la page.
+   Mission 12 : la fermeture automatique après 30 minutes sans activité est dans inactivite.js.
    ========================================================= */
 "use strict";
 
@@ -225,9 +226,11 @@ function accueillirInvite(conn) {
     etat.invites.push(invite);
     conn.send({ type: "bienvenue", nom: invite.nom });
     majPresence();
+    noterActivite(true); // une arrivée remonte le réveil, et le nouveau reçoit le temps qui reste
 
     conn.on("data", (msg) => {
       if (!etat.peer || !msg) return;
+      noterActivite(); // tout ce qu'envoie un invité (geste, texte, morceau de fichier) compte
       if (msg.type === "texte" && typeof msg.texte === "string") {
         ajouterAuFil("hote", { type: "texte", de: invite.nom, texte: msg.texte });
         // L'hôte fait suivre le texte aux autres invités, avec le nom de celui qui l'a écrit
@@ -256,7 +259,7 @@ function texteNombre(n) {
 }
 function majPresence() {
   const n = etat.invites.length;
-  $("etat-hote").textContent = texteNombre(n);
+  $("nombre-hote").textContent = texteNombre(n);
   $("invites-hote").hidden = n === 0;
   $("liste-invites").textContent = etat.invites.map((i) => i.nom).join(" · ");
   etat.invites.forEach((i) => {
@@ -264,11 +267,11 @@ function majPresence() {
   });
 }
 
-// L'hôte ferme : il prévient les invités, puis raccroche
+// L'hôte ferme : il prévient les invités (avec la raison), puis raccroche
 // (tout de suite si l'onglet se ferme, sinon après un petit délai pour que le message parte)
-function fermerSalleHote(toutDeSuite) {
+function fermerSalleHote(toutDeSuite, raison) {
   etat.invites.forEach((i) => {
-    if (i.conn.open) i.conn.send({ type: "fermee" });
+    if (i.conn.open) i.conn.send({ type: "fermee", raison });
   });
   const peer = etat.peer;
   etat.peer = null;
@@ -322,7 +325,8 @@ function rejoindreSalle(code) {
         majCases();
         ouvrirSalleInvite(code);
       }
-      if (msg.type === "nombre") $("etat-invite").textContent = texteNombre(msg.n);
+      if (msg.type === "nombre") $("nombre-invite").textContent = texteNombre(msg.n);
+      if (msg.type === "minuteur" && typeof msg.reste === "number") recevoirMinuteur(msg.reste);
       // « de » : le nom de l'invité qui a écrit, quand l'hôte fait suivre son message
       const de = typeof msg.de === "string" ? msg.de : "Hôte";
       if (msg.type === "texte" && typeof msg.texte === "string") {
@@ -331,7 +335,7 @@ function rejoindreSalle(code) {
       recevoirPaquetFichier("invite", de, conn, msg);
       if (msg.type === "fermee") {
         raccrocher();
-        fermerAvecEffet("hoteFermeInvite");
+        fermerAvecEffet(msg.raison === "inactivite" ? "inactiviteInvite" : "hoteFermeInvite");
       }
     });
 
@@ -387,6 +391,7 @@ function ouvrirSalleHote() {
   majPresence();
   remplirFil("hote");
   afficherEcran("hote");
+  noterActivite(true); // le réveil démarre à l'ouverture de la salle
 }
 
 /* ---------- Écran 3 : salle de l'invité ---------- */
