@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#E2620E">
+  <title>Partage éphémère</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-ecran="accueil">
+
+<main class="app">
+
+  <!-- ============ ÉCRAN 1 : ACCUEIL ============ -->
+  <section class="ecran accueil" id="ecran-accueil" data-nom="accueil">
+    <div class="accueil-gauche">
+      <span class="logo" aria-hidden="true">PÉ</span>
+      <h1 class="titre">
+        <span class="lecteur">Partage éphémère</span>
+        <span aria-hidden="true">Partage<br><span class="evapore">éphémère</span></span>
+      </h1>
+      <p class="sous-titre">Envoie du texte et des fichiers, sans compte. Tout disparaît à la fermeture.</p>
+      <button class="btn btn-blanc btn-creer" id="btn-creer" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        Créer une salle
+      </button>
+    </div>
+
+    <div class="accueil-droite">
+      <div class="separateur"><span>ou</span></div>
+
+      <form class="carte-rejoindre verre" id="form-rejoindre" novalidate>
+        <label for="champ-code" class="etiquette">Code à 6 chiffres</label>
+        <div class="cases" id="cases">
+          <span class="case"></span><span class="case"></span><span class="case"></span>
+          <span class="case"></span><span class="case"></span><span class="case"></span>
+          <input id="champ-code" type="text" inputmode="numeric" pattern="[0-9]*"
+                 autocomplete="one-time-code" maxlength="6" spellcheck="false"
+                 aria-describedby="erreur-code">
+        </div>
+        <p class="erreur" id="erreur-code" role="alert" hidden></p>
+        <button class="btn btn-contour" type="submit">Rejoindre</button>
+      </form>
+
+      <div class="encart-installation" id="encart-ios" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>
+        <p>Installer l'app : touche Partager, puis Sur l'écran d'accueil.</p>
+      </div>
+      <button class="btn btn-contour btn-installer" id="btn-installer" type="button" hidden>Installer l'app</button>
+    </div>
+
+    <p class="pied">Aucun compte. Aucun stockage en ligne.</p>
+  </section>
+
+  <!-- ============ ÉCRAN 2 : SALLE DE L'HÔTE ============ -->
+  <section class="ecran salle salle-hote" id="ecran-hote" data-nom="hote" hidden>
+    <header class="salle-tete zone-tete">
+      <h2>Ta salle</h2>
+    </header>
+
+    <div class="carte-code verre zone-code">
+      <div class="plaques" id="plaques-hote" role="img" aria-label="Code de la salle : 482 915"></div>
+      <div class="qr-ligne">
+        <div class="qr" id="qr" aria-hidden="true"></div>
+        <p>Les invités scannent ce QR code avec l'appareil photo de leur téléphone.</p>
+      </div>
+      <div class="duo">
+        <button class="mini" type="button" id="btn-copier-code">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+          Copier le code
+        </button>
+        <button class="mini" type="button" id="btn-partager">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg>
+          Partager le lien
+        </button>
+      </div>
+    </div>
+
+    <p class="etat zone-etat">3 personnes connectées · Fermeture automatique dans 24 min</p>
+    <p class="invites zone-invites"><b>Invités</b> Invité 1, Invité 2</p>
+
+    <div class="bandeau zone-bandeau" id="bandeau-hote"></div>
+
+    <div class="fil zone-fil" id="fil-hote" aria-live="polite"></div>
+
+    <div class="bas zone-bas">
+      <div class="depot">Glisse un fichier ici</div>
+      <form class="compose" data-compose>
+        <button class="rond rond-ajout" type="button" aria-label="Ajouter un fichier" title="Ajouter un fichier" data-ajout>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <input type="text" placeholder="Écrire un message…" aria-label="Écrire un message…">
+        <button class="rond rond-envoi" type="submit" aria-label="Envoyer">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+          <span class="txt">Envoyer</span>
+        </button>
+      </form>
+    </div>
+
+    <button class="btn btn-rouge zone-sortie" id="btn-fermer" type="button">Fermer la salle</button>
+  </section>
+
+  <!-- ============ ÉCRAN 3 : SALLE DE L'INVITÉ ============ -->
+  <section class="ecran salle salle-invite" id="ecran-invite" data-nom="invite" hidden>
+    <header class="salle-tete zone-tete">
+      <h2>Salle <span id="code-invite">482 915</span></h2>
+      <span class="pastille"><span class="point" aria-hidden="true"></span>Connecté à l'hôte</span>
+    </header>
+
+    <p class="etat zone-etat">3 personnes connectées · Fermeture automatique dans 24 min</p>
+    <div class="bandeau zone-bandeau">Télécharge tes fichiers avant la fermeture : rien n'est gardé.</div>
+    <p class="info zone-info">Tu vois uniquement ce qui est envoyé après ton arrivée.</p>
+
+    <div class="fil zone-fil" id="fil-invite" aria-live="polite"></div>
+
+    <div class="bas zone-bas">
+      <div class="depot">Glisse un fichier ici</div>
+      <form class="compose" data-compose>
+        <button class="rond rond-ajout" type="button" aria-label="Ajouter un fichier" title="Ajouter un fichier" data-ajout>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <input type="text" placeholder="Écrire un message…" aria-label="Écrire un message…">
+        <button class="rond rond-envoi" type="submit" aria-label="Envoyer">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+          <span class="txt">Envoyer</span>
+        </button>
+      </form>
+    </div>
+
+    <button class="btn btn-contour zone-sortie" id="btn-quitter" type="button">Quitter la salle</button>
+  </section>
+
+  <!-- ============ ÉCRAN 4 : SALLE FERMÉE ============ -->
+  <section class="ecran fermee" id="ecran-fermee" data-nom="fermee" hidden>
+    <div class="cercle" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17"/></svg>
+    </div>
+    <h2>La salle est fermée</h2>
+    <p class="raison" id="raison"></p>
+    <p class="commune">Les messages et les fichiers ont été supprimés.</p>
+    <div class="fermee-boutons">
+      <button class="btn btn-blanc" id="btn-retour" type="button">Retour à l'accueil</button>
+      <button class="btn btn-contour" id="btn-nouvelle" type="button" hidden>Créer une nouvelle salle</button>
+    </div>
+  </section>
+
+</main>
+
+<!-- Fenêtre de confirmation (fermer / quitter) -->
+<dialog class="confirmation" id="confirmation">
+  <h2 id="conf-titre"></h2>
+  <p id="conf-texte"></p>
+  <div class="conf-boutons">
+    <button class="btn btn-rouge" id="conf-oui" type="button"></button>
+    <button class="btn btn-annuler" id="conf-non" type="button">Annuler</button>
+  </div>
+</dialog>
+
+<!-- Avertissement d'inactivité (à 28 min) -->
+<div class="alerte-inactivite" id="alerte-inactivite" role="alertdialog" aria-labelledby="alerte-texte" hidden>
+  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>
+  <p id="alerte-texte">Sans activité, la salle se ferme dans 2 minutes.</p>
+  <button class="btn btn-orange" id="btn-rester" type="button">Rester</button>
+</div>
+
+<!-- Petit message temporaire (« Code copié ✓ ») -->
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- ============ PANNEAU DÉMO (temporaire, enlevé quand le vrai transfert marchera) ============ -->
+<button class="demo-bouton" id="demo-bouton" type="button" aria-expanded="false" aria-controls="demo-panneau">Démo</button>
+<div class="demo-panneau" id="demo-panneau" hidden>
+  <p class="demo-note">Outil de vérification, sans vrai transfert.</p>
+
+  <h3>Écrans</h3>
+  <div class="demo-groupe">
+    <button type="button" data-demo="accueil">Accueil</button>
+    <button type="button" data-demo="hote">Salle de l'hôte</button>
+    <button type="button" data-demo="invite">Salle de l'invité</button>
+  </div>
+
+  <h3>Salle fermée, selon la raison</h3>
+  <div class="demo-groupe">
+    <button type="button" data-fermee="hoteVolontaire">Hôte a fermé (vu par l'hôte)</button>
+    <button type="button" data-fermee="hoteFermeInvite">Hôte a fermé (vu par l'invité)</button>
+    <button type="button" data-fermee="inactiviteHote">Inactivité (hôte)</button>
+    <button type="button" data-fermee="inactiviteInvite">Inactivité (invité)</button>
+    <button type="button" data-fermee="disparuInvite">Hôte disparu (vu par l'invité)</button>
+    <button type="button" data-fermee="disparuHote">Hôte disparu (vu par l'hôte)</button>
+  </div>
+
+  <h3>Erreurs sur l'accueil</h3>
+  <div class="demo-groupe">
+    <button type="button" data-erreur="court">Code trop court</button>
+    <button type="button" data-erreur="inconnu">Code inconnu</button>
+    <button type="button" data-erreur="fermee">Salle déjà fermée</button>
+    <button type="button" data-erreur="pleine">Salle pleine</button>
+    <button type="button" data-erreur="reseau">Pas de réseau</button>
+    <button type="button" data-erreur="navigateur">Navigateur incompatible</button>
+  </div>
+
+  <h3>Dans la salle</h3>
+  <div class="demo-groupe">
+    <button type="button" data-salle="exemples">Remplir d'exemples</button>
+    <button type="button" data-salle="vider">Vider</button>
+    <button type="button" data-salle="inactivite">Avertissement 2 min</button>
+    <button type="button" data-toast="Fichier reçu. Télécharge-le avant la fermeture.">Fichier reçu</button>
+    <button type="button" data-toast="Ce fichier est trop gros pour cet appareil. Essaie un fichier plus petit.">Trop gros à envoyer</button>
+    <button type="button" data-toast="Ce fichier est trop gros pour être reçu sur cet appareil.">Trop gros à recevoir</button>
+  </div>
+
+  <h3>Installation</h3>
+  <div class="demo-groupe">
+    <button type="button" data-install="ios">Encart iPhone</button>
+    <button type="button" data-install="pc">Bouton PC</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

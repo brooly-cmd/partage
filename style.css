@@ -1,0 +1,506 @@
+/* =========================================================
+   Partage éphémère — la décoration de la page
+   Couleurs et formes reprises de maquette-partage-ephemere.html
+   ========================================================= */
+
+:root {
+  --orange: #E2620E;
+  --orange-profond: #C24E08;
+  --ambre: #F59E0B;
+  --brun: #7A2E05;
+  --brun-nuit: #3A1503;
+  --peche: #FCE3D0;
+  --creme: #FFF4E5;
+  --rouge: #B42318;
+  --rouge-clair: #FDECEA;
+  --rouge-texte: #912018;
+  --verre: rgba(255, 255, 255, .16);
+  --verre-bord: rgba(255, 255, 255, .3);
+
+  --haut: max(16px, env(safe-area-inset-top));
+  --bas: max(16px, env(safe-area-inset-bottom));
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html {
+  min-height: 100%;
+  background-color: var(--orange);
+  background-image:
+    radial-gradient(110% 70% at 100% 0%, rgba(245, 158, 11, .55), transparent 60%),
+    linear-gradient(165deg, #E8680F 0%, var(--orange) 45%, var(--orange-profond) 100%);
+  background-attachment: fixed;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font-family: Montserrat, system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+  color: #fff;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1, h2, h3, p { margin: 0; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+.lecteur { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- Cadre général ---------- */
+.app {
+  max-width: 980px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  padding: var(--haut) 16px calc(var(--bas) + 44px); /* 44px : place pour le bouton Démo */
+  display: flex;
+  flex-direction: column;
+}
+.ecran { flex: 1; display: flex; flex-direction: column; }
+
+.verre { background: var(--verre); border: 1px solid var(--verre-bord); border-radius: 18px; }
+
+/* ---------- Boutons ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; height: 50px; padding: 0 22px;
+  border-radius: 999px; border: 0;
+  font-weight: 600; font-size: 16px;
+  transition: transform .12s ease, background-color .15s ease;
+}
+.btn:active { transform: scale(.98); }
+.btn-blanc { background: #fff; color: var(--brun); }
+.btn-blanc:hover { background: var(--creme); }
+.btn-contour { background: transparent; color: #fff; border: 1.5px solid rgba(255, 255, 255, .8); }
+.btn-contour:hover { background: rgba(255, 255, 255, .12); }
+.btn-rouge { background: var(--rouge); color: #fff; border: 1.5px solid #fff; }
+.btn-rouge:hover { background: #9A1D13; }
+.btn-orange { background: var(--orange); color: #fff; }
+.btn-annuler { background: transparent; color: var(--brun); border: 1.5px solid #E2C3AE; }
+
+.mini {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  background: #fff; color: var(--brun);
+  border: 0; border-radius: 999px;
+  min-height: 36px; padding: 0 14px;
+  font-size: 13px; font-weight: 600; white-space: nowrap;
+}
+.mini svg { width: 16px; height: 16px; }
+.mini:hover { background: var(--creme); }
+
+/* =========================================================
+   ÉCRAN 1 : ACCUEIL
+   ========================================================= */
+.accueil { gap: 22px; }
+.accueil-gauche, .accueil-droite { display: flex; flex-direction: column; gap: 18px; }
+
+.logo {
+  align-self: flex-start;
+  background: #fff; color: var(--brun);
+  border-radius: 999px; padding: 4px 11px;
+  font-size: 13px; font-weight: 700; letter-spacing: .5px;
+  margin-top: 6px;
+}
+
+/* Le titre : « éphémère » s'efface doucement de gauche à droite */
+.titre {
+  font-size: clamp(38px, 11vw, 60px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -.03em;
+  margin-top: 14px;
+}
+.evapore {
+  display: inline-block;
+  padding-bottom: .08em; /* garde la place des accents et du bas des lettres */
+  color: transparent;
+  background-image: linear-gradient(90deg, #fff 0%, #fff 50%, rgba(255, 255, 255, .4) 100%);
+  background-size: 200% 100%;
+  background-position: 100% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: evaporer 1.6s ease-out .3s both;
+}
+@keyframes evaporer {
+  from { background-position: 0 0; }
+}
+
+.sous-titre { font-size: 15px; line-height: 1.5; max-width: 32ch; }
+.btn-creer { height: 50px; font-size: 16px; margin-top: 4px; }
+
+.separateur { display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 500; }
+.separateur::before, .separateur::after { content: ""; flex: 1; height: 1px; background: rgba(255, 255, 255, .45); }
+
+.carte-rejoindre { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.etiquette { font-size: 14px; font-weight: 600; }
+
+/* Les 6 cases du code : un vrai champ invisible posé par-dessus */
+.cases { position: relative; display: flex; gap: 6px; }
+.case {
+  flex: 1; height: 48px;
+  background: rgba(255, 255, 255, .55); border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--brun); font-size: 22px; font-weight: 700;
+  transition: background-color .15s ease, box-shadow .15s ease;
+}
+.case:nth-child(4) { margin-left: 8px; }
+.case.pleine { background: #fff; }
+.cases.focus .case.active { background: #fff; box-shadow: inset 0 0 0 2px var(--brun); }
+.cases.en-erreur .case { box-shadow: inset 0 0 0 2px var(--rouge); }
+#champ-code {
+  position: absolute; inset: 0; width: 100%;
+  opacity: 0; border: 0; font-size: 16px; /* 16px : évite le zoom auto de l'iPhone */
+  caret-color: transparent;
+}
+.cases.focus { outline: 3px solid #fff; outline-offset: 4px; border-radius: 14px; }
+
+.erreur {
+  background: var(--rouge-clair); color: var(--rouge-texte);
+  border-radius: 12px; padding: 9px 12px;
+  font-size: 14px; font-weight: 600; line-height: 1.35;
+}
+
+.encart-installation {
+  display: flex; gap: 10px; align-items: center;
+  background: var(--creme); color: var(--brun);
+  border-radius: 14px; padding: 10px 12px;
+  font-size: 14px; font-weight: 600; line-height: 1.35;
+}
+
+.pied { margin-top: auto; text-align: center; font-size: 14px; font-weight: 500; padding-top: 10px; }
+
+/* =========================================================
+   ÉCRANS 2 et 3 : LES SALLES (grille qui se réorganise PC / iPhone)
+   ========================================================= */
+body[data-ecran="hote"] .app,
+body[data-ecran="invite"] .app { height: 100dvh; min-height: 620px; }
+
+.salle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto auto auto minmax(90px, 1fr) auto auto;
+  gap: 10px;
+  min-height: 0;
+}
+.salle-hote {
+  grid-template-areas: "tete" "code" "etat" "bandeau" "fil" "bas" "sortie";
+}
+.salle-hote .zone-invites { display: none; }
+.salle-invite {
+  grid-template-areas: "tete" "etat" "bandeau" "info" "fil" "bas" "sortie";
+}
+.zone-tete { grid-area: tete; } .zone-code { grid-area: code; } .zone-etat { grid-area: etat; }
+.zone-invites { grid-area: invites; } .zone-bandeau { grid-area: bandeau; } .zone-info { grid-area: info; }
+.zone-fil { grid-area: fil; } .zone-bas { grid-area: bas; } .zone-sortie { grid-area: sortie; }
+
+.salle-tete { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 36px; }
+.salle-tete h2 { font-size: 20px; font-weight: 700; }
+.pastille {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #fff; color: var(--brun);
+  border-radius: 999px; padding: 5px 11px;
+  font-size: 13px; font-weight: 600; white-space: nowrap;
+}
+.point { width: 8px; height: 8px; border-radius: 50%; background: #1F9D55; }
+
+/* Carte du code */
+.carte-code { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.plaques { display: flex; gap: 5px; }
+.plaques span {
+  flex: 1; height: 54px;
+  background: #fff; color: var(--brun);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 30px; font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 2px 0 rgba(58, 21, 3, .18);
+}
+.plaques span:nth-child(4) { margin-left: 10px; }
+
+.qr-ligne { display: flex; gap: 12px; align-items: center; font-size: 13px; line-height: 1.4; }
+.qr {
+  width: 92px; height: 92px; flex: none;
+  background: #fff; border-radius: 10px; padding: 7px;
+  display: grid; grid-template-columns: repeat(25, 1fr);
+}
+.qr i { background: var(--brun-nuit); }
+.qr i.b { background: transparent; }
+
+.duo { display: flex; gap: 8px; }
+.duo .mini { flex: 1; }
+
+.etat { font-size: 13px; font-weight: 500; }
+.invites { font-size: 13px; }
+.invites b { display: block; font-weight: 700; margin-bottom: 2px; }
+.info { font-size: 13px; }
+
+.bandeau {
+  background: var(--creme); color: var(--brun);
+  border-radius: 12px; padding: 9px 12px;
+  font-size: 13px; font-weight: 600; line-height: 1.35;
+}
+
+/* Le fil : messages et fichiers */
+.fil {
+  min-height: 0; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 8px;
+  overscroll-behavior: contain;
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.4) transparent;
+}
+.vide {
+  margin: auto; max-width: 28ch; text-align: center;
+  font-size: 15px; font-weight: 500; line-height: 1.5;
+  padding: 18px 8px; opacity: .95;
+}
+
+.msg {
+  background: var(--verre); border-radius: 16px;
+  padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 6px;
+  animation: arriver .25s ease-out both;
+}
+@keyframes arriver { from { opacity: 0; transform: translateY(6px); } }
+.msg-tete { display: flex; gap: 8px; align-items: baseline; font-size: 12px; }
+.msg-tete b { font-weight: 700; }
+.msg-tete time { opacity: .85; }
+.msg-corps { display: flex; gap: 10px; align-items: center; }
+.msg-texte { flex: 1; min-width: 0; font-size: 14px; overflow-wrap: anywhere; }
+.msg-fichier { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.msg-fichier small { display: block; font-size: 12px; font-weight: 500; opacity: .9; }
+.ft {
+  width: 38px; height: 38px; flex: none; border-radius: 10px;
+  background: #fff; color: var(--brun);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 800;
+}
+.pourcent { font-weight: 700; font-size: 14px; }
+.barre { height: 6px; background: rgba(255, 255, 255, .3); border-radius: 4px; overflow: hidden; }
+.barre b { display: block; height: 100%; background: #fff; border-radius: 4px; }
+.msg-note { font-size: 12px; font-weight: 500; }
+.msg.interrompu { background: rgba(180, 35, 24, .35); }
+.msg-actions { display: flex; gap: 8px; }
+
+/* Barre du bas */
+.bas { display: flex; flex-direction: column; gap: 8px; }
+.depot {
+  display: none;
+  border: 1.5px dashed rgba(255, 255, 255, .75); border-radius: 14px;
+  padding: 14px; text-align: center; font-size: 14px; font-weight: 500;
+}
+.compose {
+  display: flex; gap: 6px; align-items: center;
+  background: #fff; border-radius: 999px; padding: 5px;
+}
+.compose input {
+  flex: 1; min-width: 0; border: 0; background: transparent;
+  color: var(--brun-nuit); font-size: 16px; padding: 0 4px; height: 42px;
+}
+.compose input::placeholder { color: #9a6a4c; }
+.compose input:focus-visible { outline: none; }
+.compose:focus-within { box-shadow: 0 0 0 3px rgba(255,255,255,.7); }
+.rond {
+  width: 42px; height: 42px; flex: none;
+  border-radius: 999px; border: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.rond:focus-visible { outline-color: var(--brun); outline-offset: 2px; }
+.rond-ajout { background: var(--peche); color: var(--brun); }
+.rond-envoi { background: var(--orange); color: #fff; }
+.rond-envoi .txt { display: none; }
+
+/* =========================================================
+   ÉCRAN 4 : SALLE FERMÉE
+   ========================================================= */
+.fermee {
+  justify-content: center; align-items: center; text-align: center;
+  gap: 14px; max-width: 460px; margin: 0 auto; width: 100%;
+}
+.cercle {
+  width: 92px; height: 92px; border-radius: 50%;
+  background: rgba(255, 255, 255, .18); border: 1px solid rgba(255, 255, 255, .4);
+  display: flex; align-items: center; justify-content: center;
+  animation: apparaitre .5s ease-out both;
+}
+.cercle svg { width: 40px; height: 40px; stroke-width: 2.4; }
+.fermee h2 { font-size: clamp(28px, 7vw, 36px); font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
+.raison { font-size: 16px; font-weight: 600; line-height: 1.45; }
+.commune { font-size: 15px; }
+.fermee-boutons { display: flex; flex-direction: column; gap: 10px; width: 100%; margin-top: 10px; }
+@keyframes apparaitre { from { opacity: 0; transform: scale(.85); } }
+
+/* La salle qui « s'évapore » quand elle se ferme */
+.ecran.dissout { animation: dissoudre .55s ease-in forwards; pointer-events: none; }
+@keyframes dissoudre {
+  to { opacity: 0; filter: blur(8px); transform: scale(.97); }
+}
+
+/* =========================================================
+   Confirmation, avertissement, toast
+   ========================================================= */
+.confirmation {
+  border: 0; border-radius: 22px; padding: 20px;
+  width: min(440px, calc(100% - 24px)); max-width: none;
+  margin: auto auto var(--bas);
+  background: #fff; color: var(--brun-nuit);
+  box-shadow: 0 20px 60px rgba(58, 21, 3, .35);
+}
+.confirmation[open] { animation: monter .22s ease-out; }
+.confirmation::backdrop { background: rgba(58, 21, 3, .55); }
+.confirmation h2 { font-size: 20px; font-weight: 700; line-height: 1.25; }
+.confirmation p { font-size: 15px; color: var(--brun); margin: 8px 0 18px; }
+.conf-boutons { display: flex; flex-direction: column; gap: 10px; }
+.confirmation .btn-rouge { border-color: var(--rouge); }
+.confirmation :focus-visible { outline-color: var(--brun); }
+@keyframes monter { from { opacity: 0; transform: translateY(16px); } }
+
+.alerte-inactivite {
+  position: fixed; z-index: 30;
+  top: calc(var(--haut) + 4px); left: 50%; transform: translateX(-50%);
+  width: min(420px, calc(100% - 32px));
+  background: var(--creme); color: var(--brun);
+  border-radius: 18px; padding: 14px;
+  display: grid; grid-template-columns: auto 1fr; gap: 10px 10px; align-items: center;
+  box-shadow: 0 14px 40px rgba(58, 21, 3, .3);
+  animation: descendre .3s ease-out;
+}
+.alerte-inactivite p { font-size: 15px; font-weight: 700; line-height: 1.35; }
+.alerte-inactivite .btn { grid-column: 1 / -1; height: 46px; }
+.alerte-inactivite :focus-visible { outline-color: var(--brun); }
+@keyframes descendre { from { opacity: 0; transform: translate(-50%, -12px); } }
+
+.toast {
+  position: fixed; z-index: 40;
+  left: 50%; bottom: calc(var(--bas) + 60px);
+  transform: translate(-50%, 20px); opacity: 0;
+  max-width: calc(100% - 32px); width: max-content;
+  background: #fff; color: var(--brun);
+  border-radius: 16px; padding: 11px 16px;
+  font-size: 14px; font-weight: 600; text-align: center;
+  box-shadow: 0 10px 30px rgba(58, 21, 3, .3);
+  transition: opacity .2s ease, transform .2s ease;
+  pointer-events: none;
+}
+.toast.visible { opacity: 1; transform: translate(-50%, 0); }
+
+/* =========================================================
+   Panneau Démo (temporaire)
+   ========================================================= */
+.demo-bouton {
+  position: fixed; z-index: 50;
+  right: 12px; bottom: calc(var(--bas) - 4px);
+  background: rgba(58, 21, 3, .78); color: #fff;
+  border: 1px solid rgba(255, 255, 255, .25); border-radius: 999px;
+  padding: 6px 14px; font-size: 12px; font-weight: 600;
+}
+.demo-panneau {
+  position: fixed; z-index: 50;
+  right: 12px; bottom: calc(var(--bas) + 34px);
+  width: min(330px, calc(100% - 24px)); max-height: 72dvh; overflow-y: auto;
+  background: rgba(42, 15, 2, .97); color: #fff;
+  border-radius: 16px; padding: 14px;
+  box-shadow: 0 16px 50px rgba(0, 0, 0, .4);
+}
+.demo-note { font-size: 12px; opacity: .8; margin-bottom: 4px; }
+.demo-panneau h3 { font-size: 13px; font-weight: 700; margin: 12px 0 6px; }
+.demo-groupe { display: flex; flex-wrap: wrap; gap: 6px; }
+.demo-groupe button {
+  background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .2);
+  border-radius: 999px; padding: 6px 10px; font-size: 12px; font-weight: 500;
+}
+.demo-groupe button:hover { background: rgba(255, 255, 255, .22); }
+
+/* =========================================================
+   Petits écrans (iPhone SE) : on resserre
+   ========================================================= */
+@media (max-height: 700px) and (max-width: 899px) {
+  .qr { width: 72px; height: 72px; padding: 5px; }
+  .plaques span { height: 46px; font-size: 26px; }
+  .carte-code { gap: 10px; padding: 12px; }
+}
+
+/* =========================================================
+   VERSION PC (écran large)
+   ========================================================= */
+@media (min-width: 900px) {
+  .app {
+    margin: 28px auto;
+    min-height: calc(100dvh - 56px);
+    padding: 32px 40px;
+    background: rgba(255, 255, 255, .07);
+    border: 1px solid rgba(255, 255, 255, .2);
+    border-radius: 32px;
+    box-shadow: 0 30px 80px rgba(122, 46, 5, .35);
+  }
+  body[data-ecran="hote"] .app,
+  body[data-ecran="invite"] .app { height: calc(100dvh - 56px); }
+
+  /* Accueil en deux colonnes */
+  .accueil {
+    display: grid;
+    grid-template-columns: 1.15fr .85fr;
+    grid-template-rows: 1fr auto;
+    column-gap: 48px; align-items: center;
+  }
+  .titre { margin-top: 20px; }
+  .btn-creer { width: auto; align-self: flex-start; padding: 0 34px; }
+  .accueil-droite { gap: 14px; }
+  .separateur { display: none; }
+  .carte-rejoindre { padding: 20px; gap: 12px; }
+  .pied { grid-column: 1 / -1; text-align: left; }
+
+  /* Salle de l'hôte : colonne code à gauche, fil à droite */
+  .salle-hote {
+    grid-template-columns: 300px minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto 1fr auto;
+    grid-template-areas:
+      "tete    bandeau"
+      "code    fil"
+      "etat    fil"
+      "invites fil"
+      ".       fil"
+      "sortie  bas";
+    column-gap: 28px; row-gap: 12px;
+  }
+  .salle-hote .zone-invites { display: block; background: var(--verre); border-radius: 14px; padding: 10px 12px; }
+  .zone-sortie { align-self: end; }
+  .plaques span { height: 50px; font-size: 28px; }
+  .qr-ligne { flex-direction: column; align-items: flex-start; }
+  .qr { width: 150px; height: 150px; padding: 10px; }
+  .duo { flex-direction: column; }
+
+  /* Salle de l'invité : une colonne centrée, envoi + quitter côte à côte */
+  .salle-invite {
+    max-width: 780px; width: 100%; margin: 0 auto;
+    grid-template-columns: minmax(0, 1fr) 200px;
+    grid-template-rows: auto auto auto auto 1fr auto;
+    grid-template-areas:
+      "tete    tete"
+      "etat    etat"
+      "bandeau bandeau"
+      "info    info"
+      "fil     fil"
+      "bas     sortie";
+    column-gap: 10px;
+  }
+  .salle-invite .zone-sortie { height: 52px; }
+
+  .depot { display: block; }
+  .rond-envoi { width: auto; padding: 0 20px; }
+  .rond-envoi svg { display: none; }
+  .rond-envoi .txt { display: inline; font-weight: 600; font-size: 15px; }
+
+  .fermee-boutons { flex-direction: row; justify-content: center; }
+  .fermee-boutons .btn { width: auto; min-width: 200px; }
+  .confirmation { margin: auto; }
+}
+
+/* Moins d'animations si l'appareil le demande */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; transition-duration: .01ms !important; }
+}
