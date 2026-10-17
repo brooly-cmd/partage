@@ -53,7 +53,7 @@ function recevoirPaquetFichier(role, de, conn, msg) {
     const tropGros = msg.taille > LIMITE_RECEPTION;
     if (tropGros) afficherToast(TEXTE_TROP_GROS_RECU);
     if (tropGros && relais.size === 0) {
-      conn.send({ type: "refus", id });
+      envoyer(conn, { type: "refus", id });
       return;
     }
     const recu = {
@@ -72,8 +72,7 @@ function recevoirPaquetFichier(role, de, conn, msg) {
   if (!recu || recu.conn !== conn) return;
 
   if (msg.type === "morceau") {
-    let donnees = msg.donnees;
-    if (ArrayBuffer.isView(donnees)) donnees = donnees.buffer.slice(donnees.byteOffset, donnees.byteOffset + donnees.byteLength);
+    const donnees = msg.donnees;
     if (!(donnees instanceof ArrayBuffer)) return;
     recu.recu += donnees.byteLength;
     if (recu.relais.size > 0) faireSuivre(recu, { type: "morceau", id, donnees });
@@ -114,7 +113,7 @@ function recevoirPaquetFichier(role, de, conn, msg) {
 // (hôte) Fait suivre un paquet aux invités qui reçoivent ce fichier par moi
 function faireSuivre(recu, paquet) {
   recu.relais.forEach((c) => {
-    if (c.open) c.send(paquet);
+    if (c.open) envoyer(c, paquet);
     else recu.relais.delete(c);
   });
   lacherSiPersonne(recu);
@@ -132,7 +131,7 @@ async function envoyerAccuse(recu) {
   recu.accuseEnCours = false;
   if (etat.recus.get(recu.id) !== recu || !recu.conn.open) return;
   recu.accuse = recu.recu;
-  recu.conn.send({ type: "accuse", id: recu.id, n: recu.recu });
+  envoyer(recu.conn, { type: "accuse", id: recu.id, n: recu.recu });
 }
 
 // Je ne garde plus le fichier pour moi (annulé, ou plus de place) ;
@@ -150,7 +149,7 @@ function arreterDeGarder(recu, raison) {
 function lacherSiPersonne(recu, raison = "refus") {
   if (recu.garder || recu.relais.size > 0 || etat.recus.get(recu.id) !== recu) return;
   etat.recus.delete(recu.id);
-  if (recu.conn.open) recu.conn.send({ type: raison, id: recu.id });
+  if (recu.conn.open) envoyer(recu.conn, { type: raison, id: recu.id });
 }
 
 // L'appareil n'a plus assez de place pour garder le fichier : on arrête et on l'explique

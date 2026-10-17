@@ -11,10 +11,39 @@ const MAX_INVITES = 7;
 // Chaque salle s'inscrit chez le standardiste sous ce nom + le code
 const PREFIXE = "partage-ephemere-";
 
+// Les paquets voyagent « bruts » (sans l'emballage de PeerJS, qui recoupait et recopiait
+// chaque morceau de fichier, et ralentissait tout) : un message part en texte (format JSON),
+// un morceau de fichier part tel quel, précédé de son numéro d'envoi (comme une étiquette sur un carton).
+function emballer(paquet) {
+  if (paquet.type !== "morceau") return JSON.stringify(paquet);
+  const id = new TextEncoder().encode(paquet.id);
+  const tout = new Uint8Array(1 + id.length + paquet.donnees.byteLength);
+  tout[0] = id.length;
+  tout.set(id, 1);
+  tout.set(new Uint8Array(paquet.donnees), 1 + id.length);
+  return tout.buffer;
+}
+
+// L'inverse, à l'arrivée (null si le paquet est illisible)
+function deballer(brut) {
+  try {
+    if (typeof brut === "string") return JSON.parse(brut);
+    const n = new Uint8Array(brut, 0, 1)[0];
+    const id = new TextDecoder().decode(new Uint8Array(brut, 1, n));
+    return { type: "morceau", id, donnees: brut.slice(1 + n) };
+  } catch {
+    return null;
+  }
+}
+
+function envoyer(conn, paquet) {
+  conn.send(emballer(paquet));
+}
+
 // Envoie le même paquet dans chaque tuyau encore ouvert
 function envoyerA(tuyaux, paquet) {
   tuyaux.forEach((conn) => {
-    if (conn.open) conn.send(paquet);
+    if (conn.open) envoyer(conn, paquet);
   });
 }
 
@@ -114,18 +143,19 @@ function essayerCode(essaisRestants) {
 function accueillirInvite(conn) {
   conn.on("open", () => {
     if (etat.invites.length >= MAX_INVITES) {
-      conn.send({ type: "pleine" });
+      envoyer(conn, { type: "pleine" });
       setTimeout(() => conn.close(), 500);
       return;
     }
     etat.numeroInvite += 1;
     const invite = { nom: "Invité " + etat.numeroInvite, conn };
     etat.invites.push(invite);
-    conn.send({ type: "bienvenue", nom: invite.nom });
+    envoyer(conn, { type: "bienvenue", nom: invite.nom });
     majPresence();
     prevenirInvites(); // le nouveau reçoit le temps qui reste
 
-    conn.on("data", (msg) => {
+    conn.on("data", (brut) => {
+      const msg = deballer(brut);
       if (!etat.peer || !msg) return;
       if (msg.type === "texte" && typeof msg.texte === "string") {
         ajouterAuFil("hote", { type: "texte", de: invite.nom, texte: msg.texte });
@@ -202,10 +232,11 @@ function rejoindreSalle(code) {
   }
 
   peer.on("open", () => {
-    const conn = peer.connect(PREFIXE + code, { reliable: true });
+    const conn = peer.connect(PREFIXE + code, { reliable: true, serialization: "raw" });
     etat.connHote = conn;
 
-    conn.on("data", (msg) => {
+    conn.on("data", (brut) => {
+      const msg = deballer(brut);
       if (etat.peer !== peer || !msg) return;
       if (msg.type === "pleine") echec("pleine");
       if (msg.type === "bienvenue") {

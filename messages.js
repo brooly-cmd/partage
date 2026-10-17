@@ -128,7 +128,7 @@ function envoyerTexte(texte) {
     afficherToast(ERREURS.reseau);
     return false;
   }
-  etat.connHote.send(paquet);
+  envoyer(etat.connHote, paquet);
   ajouterAuFil("invite", { type: "texte", de: "Moi", texte });
   return true;
 }

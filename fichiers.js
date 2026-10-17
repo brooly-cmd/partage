@@ -7,10 +7,11 @@
 "use strict";
 
 const MORCEAU = 64 * 1024;             // 64 Ko par morceau
-const TUYAU_PLEIN = 1024 * 1024;       // on ne laisse jamais plus d'1 Mo en attente dans le tuyau
+const LECTURE = 1024 * 1024;           // on lit le fichier sur le disque par blocs d'1 Mo (16 morceaux)
+const TUYAU_PLEIN = 4 * 1024 * 1024;   // on ne laisse jamais plus de 4 Mo en attente dans le tuyau
 // Quand un invité envoie, l'hôte fait suivre aux autres. Pour que l'hôte ne soit jamais débordé,
-// il dit « bien reçu » (accusé de réception, voir reception.js), et l'invité n'a jamais plus de 4 Mo d'avance.
-const AVANCE_MAX = 4 * 1024 * 1024;
+// il dit « bien reçu » (accusé de réception, voir reception.js), et l'invité n'a jamais plus de 8 Mo d'avance.
+const AVANCE_MAX = 8 * 1024 * 1024;
 
 const TEXTE_TROP_GROS_ENVOI = "Ce fichier est trop gros pour cet appareil. Essaie un fichier plus petit.";
 
@@ -183,6 +184,8 @@ async function transmettre(envoi) {
 
   envoyerA(envoi.cibles, { type: "fichier-debut", id, nom: fichier.name, mime: fichier.type, taille: fichier.size });
   let envoye = 0;
+  let bloc = new ArrayBuffer(0); // le dernier bloc lu sur le disque
+  let debutBloc = 0;
   let lectureRatee = false;
   try {
     while (envoye < fichier.size) {
@@ -198,8 +201,13 @@ async function transmettre(envoi) {
         retirerCoupes(envoi);
       }
       if (!continuer()) break;
-      const donnees = await fichier.slice(envoye, envoye + MORCEAU).arrayBuffer();
-      if (!continuer()) break;
+      if (envoye >= debutBloc + bloc.byteLength) {
+        bloc = await fichier.slice(envoye, envoye + LECTURE).arrayBuffer();
+        debutBloc = envoye;
+        if (!bloc.byteLength) throw new Error("fichier raccourci");
+        if (!continuer()) break;
+      }
+      const donnees = bloc.slice(envoye - debutBloc, envoye - debutBloc + MORCEAU);
       envoyerA(envoi.cibles, { type: "morceau", id, donnees });
       envoye += donnees.byteLength;
       majProgression(envoi.carte, envoye, fichier.size);
