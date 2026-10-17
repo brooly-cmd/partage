@@ -1,7 +1,7 @@
 /* =========================================================
    Partage éphémère — le petit moteur de la page
-   Mission 5 : « Créer une salle » donne un vrai code au hasard
-   et un vrai QR code. Pas encore de connexion entre appareils.
+   Mission 6 : l'invité rejoint la salle de l'hôte pour de vrai,
+   grâce au « standardiste » gratuit PeerJS.
    ========================================================= */
 "use strict";
 
@@ -13,7 +13,16 @@ const etat = {
   ecran: "accueil",
   codeHote: null,       // le code de la salle, tiré au hasard à chaque nouvelle salle
   avecExemples: false,  // le panneau Démo peut remplir la salle de faux messages
+  peer: null,           // notre « ligne téléphonique » chez le standardiste PeerJS
+  invites: [],          // (hôte) les invités connectés : { nom, conn }
+  numeroInvite: 0,      // (hôte) pour nommer « Invité 1 », « Invité 2 »…
+  connHote: null,       // (invité) le tuyau direct vers l'hôte
 };
+
+// Salle : 8 personnes maximum, hôte compris
+const MAX_INVITES = 7;
+// Chaque salle s'inscrit chez le standardiste sous ce nom + le code
+const PREFIXE = "partage-ephemere-";
 
 // --- Tous les textes de la salle fermée, mot pour mot depuis ECRANS.md
 const RAISONS = {
@@ -101,11 +110,225 @@ function dessinerQR(texte) {
 }
 
 /* ---------- Écran 2 : salle de l'hôte ---------- */
-// « Créer une salle » : un nouveau code, un nouveau QR, puis la salle
+/* =========================================================
+   La connexion entre appareils (PeerJS)
+   ========================================================= */
+// Raccroche proprement : coupe tous les tuyaux et la ligne chez le standardiste
+function raccrocher() {
+  if (etat.peer) {
+    const p = etat.peer;
+    etat.peer = null; // d'abord, pour que les « close » qui suivent soient ignorés
+    p.destroy();
+  }
+  etat.invites = [];
+  etat.numeroInvite = 0;
+  etat.connHote = null;
+}
+
+// Vérifie qu'on peut se connecter. Renvoie la clé d'erreur, ou null si tout va bien.
+function problemeConnexion() {
+  if (navigator.onLine === false) return "reseau";
+  if (typeof Peer !== "function") return "reseau"; // PeerJS n'a pas pu se charger
+  if (!window.RTCPeerConnection) return "navigateur";
+  return null;
+}
+
+// Prévient quand un tuyau se coupe, même si l'autre appareil part sans dire au revoir
+function surveillerCoupure(conn, quandCoupe) {
+  let fait = false;
+  const une = () => { if (!fait) { fait = true; quandCoupe(); } };
+  conn.on("close", une);
+  conn.on("error", une);
+  const pc = conn.peerConnection;
+  if (pc) {
+    pc.addEventListener("iceconnectionstatechange", () => {
+      if (pc.iceConnectionState === "failed" || pc.iceConnectionState === "closed") une();
+    });
+  }
+}
+
+/* ---------- Côté hôte ---------- */
+// « Créer une salle » : on tire un code et on le réserve chez le standardiste
 function creerSalle() {
-  etat.codeHote = tirerCode();
-  dessinerQR(lienSalle(etat.codeHote));
-  ouvrirSalleHote();
+  const probleme = problemeConnexion();
+  if (probleme) {
+    afficherEcran("accueil");
+    afficherErreur(probleme);
+    return;
+  }
+  raccrocher();
+  effacerErreur();
+  occuper($("btn-creer"), true);
+  essayerCode(5);
+}
+
+function essayerCode(essaisRestants) {
+  const code = tirerCode();
+  const peer = new Peer(PREFIXE + code);
+  etat.peer = peer;
+
+  peer.on("open", () => {
+    if (etat.peer !== peer) return;
+    occuper($("btn-creer"), false);
+    etat.codeHote = code;
+    dessinerQR(lienSalle(code));
+    ouvrirSalleHote();
+  });
+
+  peer.on("connection", (conn) => accueillirInvite(conn));
+
+  // Si le lien avec le standardiste saute, on se réinscrit (les invités déjà là restent reliés)
+  peer.on("disconnected", () => {
+    if (etat.peer === peer && etat.ecran === "hote") peer.reconnect();
+  });
+
+  peer.on("error", (err) => {
+    if (etat.peer !== peer) return;
+    if (err.type === "unavailable-id" && essaisRestants > 1) {
+      // Ce code est déjà pris par une autre salle : on en tire un autre
+      etat.peer = null;
+      peer.destroy();
+      essayerCode(essaisRestants - 1);
+      return;
+    }
+    if (etat.ecran === "hote") return; // un petit souci pendant la salle : on continue
+    raccrocher();
+    occuper($("btn-creer"), false);
+    afficherEcran("accueil");
+    afficherErreur(err.type === "browser-incompatible" ? "navigateur" : "reseau");
+  });
+}
+
+function accueillirInvite(conn) {
+  conn.on("open", () => {
+    if (etat.invites.length >= MAX_INVITES) {
+      conn.send({ type: "pleine" });
+      setTimeout(() => conn.close(), 500);
+      return;
+    }
+    etat.numeroInvite += 1;
+    const invite = { nom: "Invité " + etat.numeroInvite, conn };
+    etat.invites.push(invite);
+    conn.send({ type: "bienvenue", nom: invite.nom });
+    majPresence();
+
+    surveillerCoupure(conn, () => {
+      etat.invites = etat.invites.filter((i) => i !== invite);
+      if (etat.peer) majPresence();
+    });
+  });
+}
+
+// « 1 personne connectée », la liste des invités, et la même info envoyée à chaque invité
+function texteNombre(n) {
+  return n + (n > 1 ? " personnes connectées" : " personne connectée");
+}
+function majPresence() {
+  const n = etat.invites.length;
+  $("etat-hote").textContent = texteNombre(n);
+  $("invites-hote").hidden = n === 0;
+  $("liste-invites").textContent = etat.invites.map((i) => i.nom).join(", ");
+  etat.invites.forEach((i) => {
+    if (i.conn.open) i.conn.send({ type: "nombre", n });
+  });
+}
+
+// L'hôte ferme : il prévient les invités, puis raccroche
+// (tout de suite si l'onglet se ferme, sinon après un petit délai pour que le message parte)
+function fermerSalleHote(toutDeSuite) {
+  etat.invites.forEach((i) => {
+    if (i.conn.open) i.conn.send({ type: "fermee" });
+  });
+  const peer = etat.peer;
+  etat.peer = null;
+  etat.invites = [];
+  etat.codeHote = null;
+  if (!peer) return;
+  if (toutDeSuite) peer.destroy();
+  else setTimeout(() => peer.destroy(), 300);
+}
+
+/* ---------- Côté invité ---------- */
+function rejoindreSalle(code) {
+  const probleme = problemeConnexion();
+  if (probleme) {
+    afficherErreur(probleme);
+    return;
+  }
+  raccrocher();
+  const bouton = $("form-rejoindre").querySelector("button[type=submit]");
+  occuper(bouton, true, "Connexion…");
+
+  const peer = new Peer(); // l'invité reçoit un nom au hasard du standardiste
+  etat.peer = peer;
+  let entre = false;
+
+  // Si rien ne répond au bout de 20 secondes, on abandonne
+  const minuteur = setTimeout(() => echec("reseau"), 20000);
+
+  function echec(cle) {
+    if (etat.peer !== peer || entre) return;
+    clearTimeout(minuteur);
+    raccrocher();
+    occuper(bouton, false);
+    afficherEcran("accueil");
+    afficherErreur(cle);
+  }
+
+  peer.on("open", () => {
+    const conn = peer.connect(PREFIXE + code, { reliable: true });
+    etat.connHote = conn;
+
+    conn.on("data", (msg) => {
+      if (etat.peer !== peer || !msg) return;
+      if (msg.type === "pleine") echec("pleine");
+      if (msg.type === "bienvenue") {
+        entre = true;
+        clearTimeout(minuteur);
+        occuper(bouton, false);
+        champ.value = "";
+        majCases();
+        ouvrirSalleInvite(code);
+      }
+      if (msg.type === "nombre") $("etat-invite").textContent = texteNombre(msg.n);
+      if (msg.type === "fermee") {
+        raccrocher();
+        fermerAvecEffet("hoteFermeInvite");
+      }
+    });
+
+    surveillerCoupure(conn, () => {
+      if (etat.peer !== peer) return;
+      if (!entre) return echec("inconnu");
+      raccrocher();
+      fermerAvecEffet("disparuInvite");
+    });
+  });
+
+  peer.on("error", (err) => {
+    if (err.type === "peer-unavailable") return echec("inconnu"); // personne n'a ce code
+    if (err.type === "browser-incompatible") return echec("navigateur");
+    if (!entre) echec("reseau");
+  });
+}
+
+// L'invité part de lui-même : la salle continue pour les autres
+function quitterSalle() {
+  raccrocher();
+  afficherEcran("accueil");
+}
+
+// Met un bouton « en attente » (grisé) pendant qu'on se connecte
+function occuper(bouton, oui, texte) {
+  if (oui) {
+    bouton.dataset.texte = bouton.dataset.texte || bouton.innerHTML;
+    bouton.disabled = true;
+    if (texte) bouton.textContent = texte;
+  } else if (bouton.dataset.texte) {
+    bouton.innerHTML = bouton.dataset.texte;
+    delete bouton.dataset.texte;
+    bouton.disabled = false;
+  }
 }
 
 function ouvrirSalleHote() {
@@ -122,6 +345,7 @@ function ouvrirSalleHote() {
     ? "Ne verrouille pas ton écran : la salle se fermerait pour tout le monde."
     : "Garde cette page ouverte, sinon la salle se ferme.";
 
+  majPresence();
   remplirFil("hote");
   afficherEcran("hote");
 }
@@ -354,7 +578,7 @@ $("form-rejoindre").addEventListener("submit", (e) => {
     champ.focus();
     return;
   }
-  ouvrirSalleInvite(champ.value);
+  rejoindreSalle(champ.value);
 });
 
 /* =========================================================
@@ -374,7 +598,10 @@ $("btn-fermer").addEventListener("click", () => {
     "Fermer la salle pour tout le monde ?",
     "Tous les messages et fichiers seront supprimés.",
     "Fermer la salle",
-    () => fermerAvecEffet("hoteVolontaire")
+    () => {
+      fermerSalleHote();
+      fermerAvecEffet("hoteVolontaire");
+    }
   );
 });
 
@@ -383,11 +610,17 @@ $("btn-quitter").addEventListener("click", () => {
     "Quitter la salle ?",
     "Tu perdras ce qui n'est pas téléchargé.",
     "Quitter",
-    () => afficherEcran("accueil")
+    quitterSalle
   );
 });
 
 $("btn-retour").addEventListener("click", () => afficherEcran("accueil"));
+
+// Si on ferme l'onglet, on raccroche tout de suite (les autres le voient aussitôt)
+window.addEventListener("pagehide", () => {
+  if (etat.ecran === "hote") fermerSalleHote(true);
+  raccrocher();
+});
 $("btn-nouvelle").addEventListener("click", creerSalle);
 
 $("btn-rester").addEventListener("click", () => ($("alerte-inactivite").hidden = true));
@@ -405,6 +638,17 @@ document.querySelectorAll("[data-ajout]").forEach((bouton) => {
 
 // Encart d'installation : seulement dans Safari sur iPhone, si l'app n'est pas déjà installée
 $("encart-ios").hidden = !(estSafariIOS && !estInstallee);
+
+// Arrivée par le lien du QR code (…/?code=123456) : on entre directement
+(function arriveeParLien() {
+  const code = new URLSearchParams(location.search).get("code");
+  if (code === null) return;
+  history.replaceState(null, "", location.pathname); // on enlève le code de l'adresse
+  champ.value = code.replace(/\D/g, "").slice(0, 6);
+  majCases();
+  if (champ.value.length !== 6) return afficherErreur("court");
+  rejoindreSalle(champ.value);
+})();
 
 /* =========================================================
    Panneau Démo (temporaire)

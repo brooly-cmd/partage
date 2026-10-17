@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
 </head>
 <body data-ecran="accueil">
 
@@ -79,8 +79,8 @@
       </div>
     </div>
 
-    <p class="etat zone-etat">3 personnes connectées · Fermeture automatique dans 24 min</p>
-    <p class="invites zone-invites"><b>Invités</b> Invité 1, Invité 2</p>
+    <p class="etat zone-etat" id="etat-hote" aria-live="polite">0 personne connectée</p>
+    <p class="invites zone-invites" id="invites-hote" hidden><b>Invités</b> <span id="liste-invites"></span></p>
 
     <div class="bandeau zone-bandeau" id="bandeau-hote"></div>
 
@@ -110,7 +110,7 @@
       <span class="pastille"><span class="point" aria-hidden="true"></span>Connecté à l'hôte</span>
     </header>
 
-    <p class="etat zone-etat">3 personnes connectées · Fermeture automatique dans 24 min</p>
+    <p class="etat zone-etat" id="etat-invite" aria-live="polite">1 personne connectée</p>
     <div class="bandeau zone-bandeau">Télécharge tes fichiers avant la fermeture : rien n'est gardé.</div>
     <p class="info zone-info">Tu vois uniquement ce qui est envoyé après ton arrivée.</p>
 
@@ -220,6 +220,8 @@
 
 <!-- Petite bibliothèque qui dessine les QR codes -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-<script src="app.js?v=5"></script>
+<!-- PeerJS : le « standardiste » qui met les appareils en relation -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>
