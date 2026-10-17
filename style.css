@@ -509,3 +509,12 @@ body[data-ecran="invite"] .app { height: 100dvh; min-height: 620px; }
 /* Mission 6 : bouton en attente pendant la connexion */
 .btn:disabled { opacity: .6; cursor: wait; }
 .salle-hote .zone-invites[hidden] { display: none; }
+
+/* Mission 8 : un fichier glissé au-dessus de la salle allume le cadre de dépôt */
+.depot { transition: background-color .15s, border-color .15s, transform .15s; }
+.salle.glisse .depot {
+  border-style: solid; border-color: #fff;
+  background: rgba(255, 255, 255, .22);
+  transform: scale(1.02);
+}
+.salle.glisse .depot::before { content: "↓ "; font-weight: 700; }

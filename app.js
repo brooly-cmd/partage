@@ -3,6 +3,7 @@
    Mission 6 : l'invité rejoint la salle de l'hôte pour de vrai,
    grâce au « standardiste » gratuit PeerJS.
    Mission 7 : on s'envoie du texte en instantané par ce tuyau.
+   Mission 8 : on s'envoie aussi des petits fichiers (bouton « + » ou glisser-déposer).
    ========================================================= */
 "use strict";
 
@@ -218,6 +219,7 @@ function accueillirInvite(conn) {
       if (msg.type === "texte" && typeof msg.texte === "string") {
         ajouterAuFil("hote", { type: "texte", de: invite.nom, texte: msg.texte });
       }
+      if (msg.type === "fichier") recevoirFichier("hote", invite.nom, msg);
     });
 
     surveillerCoupure(conn, () => {
@@ -302,6 +304,7 @@ function rejoindreSalle(code) {
       if (msg.type === "texte" && typeof msg.texte === "string") {
         ajouterAuFil("invite", { type: "texte", de: "Hôte", texte: msg.texte });
       }
+      if (msg.type === "fichier") recevoirFichier("invite", "Hôte", msg);
       if (msg.type === "fermee") {
         raccrocher();
         fermerAvecEffet("hoteFermeInvite");
@@ -427,7 +430,10 @@ function carteMessage(m) {
     nom.append(creer("small", "", m.taille));
     const telecharger = creer("button", "mini", "Télécharger");
     telecharger.type = "button";
-    telecharger.addEventListener("click", () => afficherToast("Démo : le téléchargement arrive à la mission 8."));
+    telecharger.addEventListener("click", () => {
+      if (m.blob) telechargerFichier(m.blob, m.nom);
+      else afficherToast("Démo : cet exemple n'a pas de vrai fichier.");
+    });
     corps.append(nom, telecharger);
   }
 
@@ -675,6 +681,7 @@ function envoyerTexte(texte) {
 // La zone d'écriture grandit avec le texte (jusqu'à environ 5 lignes)
 function ajusterHauteur(zone) {
   zone.style.height = "";
+  if (!zone.scrollHeight) return; // zone encore cachée : on garde sa hauteur normale
   zone.style.height = Math.min(zone.scrollHeight, 120) + "px";
 }
 
@@ -700,10 +707,122 @@ document.querySelectorAll("[data-compose]").forEach((form) => {
   });
 });
 
-// Ajouter un fichier : pas encore actif (mission 8)
-document.querySelectorAll("[data-ajout]").forEach((bouton) => {
-  bouton.addEventListener("click", () => afficherToast("Démo : l'envoi de fichiers arrive à la mission 8."));
+/* ---------- Envoyer un petit fichier (mission 8) ---------- */
+// Pour l'instant le fichier part d'un seul bloc : on limite donc sa taille.
+// La mission 9 le découpera en petits morceaux et enlèvera cette limite.
+const TAILLE_MAX = 20 * 1024 * 1024; // 20 Mo
+
+// « 2,4 Mo », « 310 Ko », « 512 o »
+function tailleLisible(octets) {
+  if (octets < 1024) return octets + " o";
+  if (octets < 1024 * 1024) return Math.round(octets / 1024) + " Ko";
+  const mo = octets / (1024 * 1024);
+  return mo.toLocaleString("fr-FR", { maximumFractionDigits: mo < 10 ? 1 : 0 }) + " Mo";
+}
+
+// L'extension du nom (« photo.jpg » → « JPG »), pour la petite pastille de la carte
+function extension(nom) {
+  const point = nom.lastIndexOf(".");
+  const ext = point > 0 ? nom.slice(point + 1) : "";
+  return /^[a-z0-9]{1,4}$/i.test(ext) ? ext.toUpperCase() : "?";
+}
+
+function carteFichier(de, nom, blob) {
+  return { type: "fichier", de, nom, blob, ext: extension(nom), taille: tailleLisible(blob.size) };
+}
+
+// L'hôte l'envoie à chaque invité ; l'invité l'envoie à l'hôte (comme le texte)
+async function envoyerFichier(fichier) {
+  const role = etat.ecran;
+  if (role !== "hote" && role !== "invite") return;
+  if (fichier.size > TAILLE_MAX) {
+    afficherToast("Ce fichier est trop gros pour cet appareil. Essaie un fichier plus petit.");
+    return;
+  }
+  if (role === "invite" && (!etat.connHote || !etat.connHote.open)) {
+    afficherToast(ERREURS.reseau);
+    return;
+  }
+  let donnees;
+  try {
+    donnees = await fichier.arrayBuffer();
+  } catch {
+    afficherToast("Ce fichier est trop gros pour cet appareil. Essaie un fichier plus petit.");
+    return;
+  }
+  if (etat.ecran !== role) return; // la salle a fermé pendant la lecture du fichier
+  const paquet = { type: "fichier", nom: fichier.name, mime: fichier.type, donnees };
+  if (role === "hote") {
+    etat.invites.forEach((i) => {
+      if (i.conn.open) i.conn.send(paquet);
+    });
+  } else {
+    etat.connHote.send(paquet);
+  }
+  ajouterAuFil(role, carteFichier("Moi", fichier.name, fichier));
+}
+
+// Un fichier arrive : on recolle ses octets en « Blob » (un fichier gardé en mémoire)
+function recevoirFichier(role, de, msg) {
+  let donnees = msg.donnees;
+  if (ArrayBuffer.isView(donnees)) donnees = donnees.buffer.slice(donnees.byteOffset, donnees.byteOffset + donnees.byteLength);
+  if (typeof msg.nom !== "string" || !(donnees instanceof ArrayBuffer)) return;
+  const type = typeof msg.mime === "string" ? msg.mime : "";
+  const blob = new Blob([donnees], { type });
+  ajouterAuFil(role, carteFichier(de, msg.nom || "fichier", blob));
+  afficherToast("Fichier reçu. Télécharge-le avant la fermeture.");
+}
+
+// « Télécharger » : on fabrique un lien temporaire vers le fichier en mémoire et on clique dessus
+function telechargerFichier(blob, nom) {
+  const url = URL.createObjectURL(blob);
+  const lien = document.createElement("a");
+  lien.href = url;
+  lien.download = nom;
+  document.body.append(lien);
+  lien.click();
+  lien.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+// Le bouton « + » ouvre le choix de fichiers (sur iPhone : Photos, Fichiers, appareil photo)
+const choixFichier = document.createElement("input");
+choixFichier.type = "file";
+choixFichier.multiple = true;
+choixFichier.hidden = true;
+document.body.append(choixFichier);
+choixFichier.addEventListener("change", () => {
+  Array.from(choixFichier.files).forEach(envoyerFichier);
+  choixFichier.value = ""; // pour pouvoir renvoyer le même fichier ensuite
 });
+document.querySelectorAll("[data-ajout]").forEach((bouton) => {
+  bouton.addEventListener("click", () => choixFichier.click());
+});
+
+// Glisser-déposer (PC) : on peut lâcher le fichier n'importe où dans la salle
+const contientFichiers = (e) => Array.from(e.dataTransfer?.types || []).includes("Files");
+document.querySelectorAll(".salle").forEach((salle) => {
+  let profondeur = 0; // le survol passe d'un élément à l'autre : on compte les entrées/sorties
+  salle.addEventListener("dragenter", (e) => {
+    if (!contientFichiers(e)) return;
+    profondeur += 1;
+    salle.classList.add("glisse");
+  });
+  salle.addEventListener("dragleave", () => {
+    profondeur = Math.max(0, profondeur - 1);
+    if (profondeur === 0) salle.classList.remove("glisse");
+  });
+  salle.addEventListener("drop", (e) => {
+    profondeur = 0;
+    salle.classList.remove("glisse");
+    if (!contientFichiers(e)) return;
+    e.preventDefault();
+    Array.from(e.dataTransfer.files).forEach(envoyerFichier);
+  });
+});
+// Partout dans la page, un fichier lâché ne doit pas remplacer la page (sinon la salle se fermerait)
+window.addEventListener("dragover", (e) => { if (contientFichiers(e)) e.preventDefault(); });
+window.addEventListener("drop", (e) => { if (contientFichiers(e)) e.preventDefault(); });
 
 // Encart d'installation : seulement dans Safari sur iPhone, si l'app n'est pas déjà installée
 $("encart-ios").hidden = !(estSafariIOS && !estInstallee);
