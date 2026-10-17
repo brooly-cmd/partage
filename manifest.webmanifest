@@ -1,0 +1,16 @@
+{
+  "name": "Vanishra",
+  "short_name": "Vanishra",
+  "description": "Envoie du texte et des fichiers, sans compte. Tout disparaît à la fermeture.",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#E2620E",
+  "theme_color": "#E2620E",
+  "icons": [
+    { "src": "icones/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icones/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icones/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
