@@ -59,7 +59,30 @@ function majProgression(carte, fait, total) {
   carte.querySelector(".pourcent").textContent = pourcent + " %";
   carte.querySelector(".barre b").style.width = pourcent + "%";
   carte.querySelector(".barre").setAttribute("aria-valuenow", pourcent);
-  carte.querySelector(".msg-fichier small").textContent = tailleProgression(fait, total);
+  // Diagnostic de vitesse (provisoire) : « 318 / 512 Mo · 9,2 Mo/s · direct (host-host) »
+  if (!carte.debut) carte.debut = performance.now();
+  const secondes = (performance.now() - carte.debut) / 1000;
+  const vitesse = secondes > 0.5 ? " · " + (fait / 1048576 / secondes).toLocaleString("fr-FR", { maximumFractionDigits: 1 }) + " Mo/s" : "";
+  const liaison = carte.liaison ? " · " + carte.liaison : "";
+  carte.querySelector(".msg-fichier small").textContent = tailleProgression(fait, total) + vitesse + liaison;
+}
+
+// (diagnostic, provisoire) Par où passe le tuyau : en direct sur le réseau de la maison,
+// par l'adresse internet de la box, ou par un relais sur internet (le détour le plus lent)
+async function noterLiaison(carte, conn) {
+  try {
+    const stats = await conn.peerConnection.getStats();
+    let paire;
+    stats.forEach((s) => {
+      if (s.type === "transport" && s.selectedCandidatePairId) paire = stats.get(s.selectedCandidatePairId);
+    });
+    if (!paire) stats.forEach((s) => { if (s.type === "candidate-pair" && s.selected) paire = s; });
+    const types = [stats.get(paire.localCandidateId).candidateType, stats.get(paire.remoteCandidateId).candidateType];
+    const nom = types.includes("relay") ? "par relais internet" : types.includes("srflx") ? "via la box" : "direct";
+    carte.liaison = nom + " (" + types.join("-") + ")";
+  } catch {
+    carte.liaison = "liaison inconnue";
+  }
 }
 
 // Remplace une carte « en cours » par la carte finale avec le bouton Télécharger
@@ -163,6 +186,7 @@ function envoyerFichier(fichier) {
   };
   envoi.carte = ajouterAuFil(role, carteEnCours("Moi", fichier.name, fichier.size, () => annulerEnvoi(envoi)));
   envoi.heure = envoi.carte.querySelector("time").textContent;
+  noterLiaison(envoi.carte, cibles[0]);
   etat.envois.set(envoi.id, envoi);
   fileEnvois = fileEnvois.then(() => transmettre(envoi));
 }

@@ -63,6 +63,7 @@ function recevoirPaquetFichier(role, de, conn, msg) {
     if (recu.garder) {
       recu.carte = ajouterAuFil(role, carteEnCours(de, nom, recu.taille, () => arreterDeGarder(recu, "annule")));
       recu.heure = recu.carte.querySelector("time").textContent;
+      noterLiaison(recu.carte, conn);
     }
     etat.recus.set(id, recu);
     return;
