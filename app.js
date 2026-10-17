@@ -1,7 +1,7 @@
 /* =========================================================
    Partage éphémère — le petit moteur de la page
-   Mission 3 : les boutons font seulement passer d'un écran à
-   l'autre. Aucun vrai transfert pour l'instant.
+   Mission 5 : « Créer une salle » donne un vrai code au hasard
+   et un vrai QR code. Pas encore de connexion entre appareils.
    ========================================================= */
 "use strict";
 
@@ -11,7 +11,7 @@ const $ = (id) => document.getElementById(id);
 // --- Ce que la page « se rappelle » pendant qu'elle est ouverte (en mémoire seulement)
 const etat = {
   ecran: "accueil",
-  codeHote: "482915",   // code d'exemple (le vrai code au hasard arrive à la mission 5)
+  codeHote: null,       // le code de la salle, tiré au hasard à chaque nouvelle salle
   avecExemples: false,  // le panneau Démo peut remplir la salle de faux messages
 };
 
@@ -59,7 +59,55 @@ function formaterCode(code) {
   return code.slice(0, 3) + " " + code.slice(3);
 }
 
+/* ---------- Le code et le lien de la salle ---------- */
+// Tire 6 chiffres au hasard avec le « dé » sécurisé du navigateur (crypto)
+function tirerCode() {
+  const nombre = new Uint32Array(1);
+  let code;
+  do {
+    crypto.getRandomValues(nombre);
+    code = String(nombre[0] % 1000000).padStart(6, "0");
+  } while (code === etat.codeHote); // jamais deux fois de suite le même
+  return code;
+}
+
+// Le lien de la salle, fabriqué depuis l'adresse de la page
+// (en ligne : https://brooly-cmd.github.io/partage/?code=123456)
+function lienSalle(code) {
+  return location.origin + location.pathname + "?code=" + code;
+}
+
+// Dessine le vrai QR code qui contient le lien de la salle
+function dessinerQR(texte) {
+  const boite = $("qr");
+  if (typeof qrcode !== "function") { // la bibliothèque n'a pas pu se charger (pas de réseau ?)
+    boite.replaceChildren();
+    return;
+  }
+  const qr = qrcode(0, "L"); // 0 = taille choisie automatiquement, L = QR le plus simple possible
+  qr.addData(texte);
+  qr.make();
+  const n = qr.getModuleCount();
+  let chemin = "";
+  for (let y = 0; y < n; y++) {
+    for (let x = 0; x < n; x++) {
+      if (qr.isDark(y, x)) chemin += "M" + x + " " + y + "h1v1h-1z";
+    }
+  }
+  boite.innerHTML =
+    '<svg viewBox="0 0 ' + n + " " + n + '" shape-rendering="crispEdges" aria-hidden="true">' +
+    '<path d="' + chemin + '"/></svg>';
+  boite.setAttribute("aria-label", "QR code de la salle : " + texte);
+}
+
 /* ---------- Écran 2 : salle de l'hôte ---------- */
+// « Créer une salle » : un nouveau code, un nouveau QR, puis la salle
+function creerSalle() {
+  etat.codeHote = tirerCode();
+  dessinerQR(lienSalle(etat.codeHote));
+  ouvrirSalleHote();
+}
+
 function ouvrirSalleHote() {
   const plaques = $("plaques-hote");
   plaques.replaceChildren(...etat.codeHote.split("").map((chiffre) => {
@@ -226,8 +274,27 @@ function afficherToast(texte) {
   minuteurToast = setTimeout(() => toast.classList.remove("visible"), 2600);
 }
 
+// Copie un texte. Renvoie une promesse : réussie si la copie a marché.
 function copierTexte(texte) {
-  if (navigator.clipboard) navigator.clipboard.writeText(texte).catch(() => {});
+  if (navigator.clipboard && window.isSecureContext) {
+    return navigator.clipboard.writeText(texte).catch(() => copierALAncienne(texte));
+  }
+  return copierALAncienne(texte);
+}
+
+// Plan B pour les navigateurs qui refusent la copie moderne
+function copierALAncienne(texte) {
+  const zone = document.createElement("textarea");
+  zone.value = texte;
+  zone.setAttribute("readonly", "");
+  zone.style.position = "fixed";
+  zone.style.opacity = "0";
+  document.body.append(zone);
+  zone.select();
+  zone.setSelectionRange(0, texte.length);
+  const ok = document.execCommand("copy");
+  zone.remove();
+  return ok ? Promise.resolve() : Promise.reject(new Error("copie refusée"));
 }
 
 /* =========================================================
@@ -293,15 +360,13 @@ $("form-rejoindre").addEventListener("submit", (e) => {
 /* =========================================================
    Les boutons des écrans
    ========================================================= */
-$("btn-creer").addEventListener("click", ouvrirSalleHote);
+$("btn-creer").addEventListener("click", creerSalle);
 
 $("btn-copier-code").addEventListener("click", () => {
-  copierTexte(etat.codeHote);
-  afficherToast("Code copié ✓");
+  copierTexte(etat.codeHote).then(() => afficherToast("Code copié ✓"), () => {});
 });
 $("btn-partager").addEventListener("click", () => {
-  copierTexte(location.origin + location.pathname + "?code=" + etat.codeHote);
-  afficherToast("Lien copié ✓");
+  copierTexte(lienSalle(etat.codeHote)).then(() => afficherToast("Lien copié ✓"), () => {});
 });
 
 $("btn-fermer").addEventListener("click", () => {
@@ -323,7 +388,7 @@ $("btn-quitter").addEventListener("click", () => {
 });
 
 $("btn-retour").addEventListener("click", () => afficherEcran("accueil"));
-$("btn-nouvelle").addEventListener("click", ouvrirSalleHote);
+$("btn-nouvelle").addEventListener("click", creerSalle);
 
 $("btn-rester").addEventListener("click", () => ($("alerte-inactivite").hidden = true));
 
@@ -342,35 +407,6 @@ document.querySelectorAll("[data-ajout]").forEach((bouton) => {
 $("encart-ios").hidden = !(estSafariIOS && !estInstallee);
 
 /* =========================================================
-   Faux QR code (le vrai arrive à la mission 5)
-   ========================================================= */
-(function dessinerFauxQR() {
-  const n = 25;
-  let graine = 7;
-  const auHasard = () => ((graine = (graine * 9301 + 49297) % 233280) / 233280);
-  const dansCoin = (x, y, cx, cy) => x >= cx && x < cx + 7 && y >= cy && y < cy + 7;
-  const motifCoin = (x, y) => {
-    const d = Math.max(Math.abs(x - 3), Math.abs(y - 3));
-    return d === 3 || d <= 1;
-  };
-  const cases = [];
-  for (let y = 0; y < n; y++) {
-    for (let x = 0; x < n; x++) {
-      let noir;
-      if (dansCoin(x, y, 0, 0)) noir = motifCoin(x, y);
-      else if (dansCoin(x, y, n - 7, 0)) noir = motifCoin(x - (n - 7), y);
-      else if (dansCoin(x, y, 0, n - 7)) noir = motifCoin(x, y - (n - 7));
-      else if ((x < 8 && y < 8) || (x > n - 9 && y < 8) || (x < 8 && y > n - 9)) noir = false; // marge blanche autour des coins
-      else noir = auHasard() > 0.52;
-      const i = document.createElement("i");
-      if (!noir) i.className = "b";
-      cases.push(i);
-    }
-  }
-  $("qr").replaceChildren(...cases);
-})();
-
-/* =========================================================
    Panneau Démo (temporaire)
    ========================================================= */
 const demoBouton = $("demo-bouton");
@@ -387,8 +423,8 @@ demoPanneau.addEventListener("click", (e) => {
   const d = b.dataset;
 
   if (d.demo === "accueil") afficherEcran("accueil");
-  if (d.demo === "hote") ouvrirSalleHote();
-  if (d.demo === "invite") ouvrirSalleInvite(etat.codeHote);
+  if (d.demo === "hote") etat.codeHote ? ouvrirSalleHote() : creerSalle();
+  if (d.demo === "invite") ouvrirSalleInvite(etat.codeHote || "482915");
 
   if (d.fermee) afficherFermee(d.fermee);
 
@@ -402,10 +438,10 @@ demoPanneau.addEventListener("click", (e) => {
   if (d.salle === "exemples" || d.salle === "vider") {
     etat.avecExemples = d.salle === "exemples";
     if (etat.ecran === "hote" || etat.ecran === "invite") remplirFil(etat.ecran);
-    else ouvrirSalleHote();
+    else creerSalle();
   }
   if (d.salle === "inactivite") {
-    if (etat.ecran !== "hote" && etat.ecran !== "invite") ouvrirSalleHote();
+    if (etat.ecran !== "hote" && etat.ecran !== "invite") creerSalle();
     $("alerte-inactivite").hidden = false;
     $("btn-rester").focus();
   }

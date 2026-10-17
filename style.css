@@ -227,10 +227,9 @@ body[data-ecran="invite"] .app { height: 100dvh; min-height: 620px; }
 .qr {
   width: 92px; height: 92px; flex: none;
   background: #fff; border-radius: 10px; padding: 7px;
-  display: grid; grid-template-columns: repeat(25, 1fr);
 }
-.qr i { background: var(--brun-nuit); }
-.qr i.b { background: transparent; }
+.qr svg { display: block; width: 100%; height: 100%; }
+.qr svg path { fill: var(--brun-nuit); stroke: none; }
 
 .duo { display: flex; gap: 8px; }
 .duo .mini { flex: 1; }

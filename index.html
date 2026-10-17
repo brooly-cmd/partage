@@ -64,7 +64,7 @@
     <div class="carte-code verre zone-code">
       <div class="plaques" id="plaques-hote" role="img" aria-label="Code de la salle : 482 915"></div>
       <div class="qr-ligne">
-        <div class="qr" id="qr" aria-hidden="true"></div>
+        <div class="qr" id="qr" role="img" aria-label="QR code de la salle"></div>
         <p>Les invités scannent ce QR code avec l'appareil photo de leur téléphone.</p>
       </div>
       <div class="duo">
@@ -218,6 +218,8 @@
   </div>
 </div>
 
+<!-- Petite bibliothèque qui dessine les QR codes -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
