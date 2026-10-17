@@ -6,6 +6,7 @@
    Mission 8 : on s'envoie aussi des petits fichiers (bouton « + » ou glisser-déposer).
    Mission 9 : les gros fichiers partent en petits morceaux, avec une barre de progression.
    Mission 10 : l'hôte fait suivre aux autres invités ce qu'il reçoit d'un invité (comme un facteur).
+   Mission 11 : quand la salle ferme (ou qu'on la quitte), tout son contenu est effacé de la page.
    ========================================================= */
 "use strict";
 
@@ -148,8 +149,14 @@ function surveillerCoupure(conn, quandCoupe) {
   conn.on("error", une);
   const pc = conn.peerConnection;
   if (pc) {
+    // « disconnected » = l'autre ne répond plus (onglet tué, écran verrouillé, réseau perdu).
+    // Ça peut être un petit hoquet du réseau : on attend 3 secondes avant de déclarer le tuyau coupé.
+    let attente;
     pc.addEventListener("iceconnectionstatechange", () => {
-      if (pc.iceConnectionState === "failed" || pc.iceConnectionState === "closed") une();
+      const s = pc.iceConnectionState;
+      clearTimeout(attente);
+      if (s === "failed" || s === "closed") une();
+      if (s === "disconnected") attente = setTimeout(une, 3000);
     });
   }
 }
@@ -346,6 +353,7 @@ function rejoindreSalle(code) {
 // L'invité part de lui-même : la salle continue pour les autres
 function quitterSalle() {
   raccrocher();
+  viderSalles();
   afficherEcran("accueil");
 }
 
@@ -390,6 +398,7 @@ function ouvrirSalleInvite(code) {
 
 /* ---------- Écran 4 : salle fermée ---------- */
 function afficherFermee(cle) {
+  viderSalles();
   const raison = RAISONS[cle];
   $("raison").textContent = raison.texte;
   $("btn-nouvelle").hidden = !raison.ancienHote;
@@ -533,12 +542,20 @@ function heureMaintenant() {
   return new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 }
 
-function remplirFil(role) {
+// La salle ferme (ou on la quitte) : on efface tous les messages et fichiers de la page,
+// comme on vide une table après le repas. Les fichiers gardés en mémoire disparaissent avec leurs cartes.
+function viderSalles() {
+  ["hote", "invite"].forEach((role) => remplirFil(role, true));
+  $("liste-invites").textContent = "";
+  if ($("confirmation").open) $("confirmation").close();
+}
+
+function remplirFil(role, toutVider) {
   const fil = $(role === "hote" ? "fil-hote" : "fil-invite");
   const zone = fil.parentElement.querySelector("textarea");
   zone.value = "";
   ajusterHauteur(zone);
-  if (etat.avecExemples) fil.replaceChildren(...EXEMPLES[role].map(carteMessage));
+  if (etat.avecExemples && !toutVider) fil.replaceChildren(...EXEMPLES[role].map(carteMessage));
   else fil.replaceChildren(messageVide(role));
 }
 
