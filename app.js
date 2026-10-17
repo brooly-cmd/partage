@@ -226,11 +226,10 @@ function accueillirInvite(conn) {
     etat.invites.push(invite);
     conn.send({ type: "bienvenue", nom: invite.nom });
     majPresence();
-    noterActivite(true); // une arrivée remonte le réveil, et le nouveau reçoit le temps qui reste
+    prevenirInvites(); // le nouveau reçoit le temps qui reste
 
     conn.on("data", (msg) => {
       if (!etat.peer || !msg) return;
-      noterActivite(); // tout ce qu'envoie un invité (geste, texte, morceau de fichier) compte
       if (msg.type === "texte" && typeof msg.texte === "string") {
         ajouterAuFil("hote", { type: "texte", de: invite.nom, texte: msg.texte });
         // L'hôte fait suivre le texte aux autres invités, avec le nom de celui qui l'a écrit
