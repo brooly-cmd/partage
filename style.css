@@ -58,7 +58,7 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
   max-width: 980px;
   margin: 0 auto;
   min-height: 100dvh;
-  padding: var(--haut) 16px calc(var(--bas) + 44px); /* 44px : place pour le bouton Démo */
+  padding: var(--haut) 16px var(--bas);
   display: flex;
   flex-direction: column;
 }
@@ -382,33 +382,6 @@ body[data-ecran="invite"] .app { height: 100dvh; min-height: 620px; }
   pointer-events: none;
 }
 .toast.visible { opacity: 1; transform: translate(-50%, 0); }
-
-/* =========================================================
-   Panneau Démo (temporaire)
-   ========================================================= */
-.demo-bouton {
-  position: fixed; z-index: 50;
-  right: 12px; bottom: calc(var(--bas) - 4px);
-  background: rgba(58, 21, 3, .78); color: #fff;
-  border: 1px solid rgba(255, 255, 255, .25); border-radius: 999px;
-  padding: 6px 14px; font-size: 12px; font-weight: 600;
-}
-.demo-panneau {
-  position: fixed; z-index: 50;
-  right: 12px; bottom: calc(var(--bas) + 34px);
-  width: min(330px, calc(100% - 24px)); max-height: 72dvh; overflow-y: auto;
-  background: rgba(42, 15, 2, .97); color: #fff;
-  border-radius: 16px; padding: 14px;
-  box-shadow: 0 16px 50px rgba(0, 0, 0, .4);
-}
-.demo-note { font-size: 12px; opacity: .8; margin-bottom: 4px; }
-.demo-panneau h3 { font-size: 13px; font-weight: 700; margin: 12px 0 6px; }
-.demo-groupe { display: flex; flex-wrap: wrap; gap: 6px; }
-.demo-groupe button {
-  background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .2);
-  border-radius: 999px; padding: 6px 10px; font-size: 12px; font-weight: 500;
-}
-.demo-groupe button:hover { background: rgba(255, 255, 255, .22); }
 
 /* =========================================================
    Petits écrans (iPhone SE) : on resserre

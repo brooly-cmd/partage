@@ -12,8 +12,6 @@ const AVANT = 2 * 60 * 1000; // l'avertissement apparaît 2 minutes avant
 let finPrevue = null;  // l'heure à laquelle la salle se fermera si rien ne bouge
 let dernierEnvoi = 0;  // la dernière fois qu'on a prévenu les invités
 
-const dansLaSalle = () => etat.ecran === "hote" || etat.ecran === "invite";
-
 // (hôte) Remonte le réveil et prévient les invités
 // (pas plus d'une fois toutes les 5 secondes, sauf si on force).
 function noterActivite(forcer) {
@@ -28,9 +26,7 @@ function noterActivite(forcer) {
 
 // (hôte) Dit à chaque invité combien de temps il reste
 function prevenirInvites() {
-  etat.invites.forEach((i) => {
-    if (i.conn.open) i.conn.send({ type: "minuteur", reste: finPrevue - Date.now() });
-  });
+  envoyerA(autresInvites(), { type: "minuteur", reste: finPrevue - Date.now() });
 }
 
 // (invité) L'hôte nous dit combien de temps il reste

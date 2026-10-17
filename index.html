@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=12">
+  <link rel="stylesheet" href="style.css?v=12.2">
 </head>
 <body data-ecran="accueil">
 
@@ -168,60 +168,17 @@
 <!-- Petit message temporaire (« Code copié ✓ ») -->
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<!-- ============ PANNEAU DÉMO (temporaire, enlevé quand le vrai transfert marchera) ============ -->
-<button class="demo-bouton" id="demo-bouton" type="button" aria-expanded="false" aria-controls="demo-panneau">Démo</button>
-<div class="demo-panneau" id="demo-panneau" hidden>
-  <p class="demo-note">Outil de vérification, sans vrai transfert.</p>
-
-  <h3>Écrans</h3>
-  <div class="demo-groupe">
-    <button type="button" data-demo="accueil">Accueil</button>
-    <button type="button" data-demo="hote">Salle de l'hôte</button>
-    <button type="button" data-demo="invite">Salle de l'invité</button>
-  </div>
-
-  <h3>Salle fermée, selon la raison</h3>
-  <div class="demo-groupe">
-    <button type="button" data-fermee="hoteVolontaire">Hôte a fermé (vu par l'hôte)</button>
-    <button type="button" data-fermee="hoteFermeInvite">Hôte a fermé (vu par l'invité)</button>
-    <button type="button" data-fermee="inactiviteHote">Inactivité (hôte)</button>
-    <button type="button" data-fermee="inactiviteInvite">Inactivité (invité)</button>
-    <button type="button" data-fermee="disparuInvite">Hôte disparu (vu par l'invité)</button>
-    <button type="button" data-fermee="disparuHote">Hôte disparu (vu par l'hôte)</button>
-  </div>
-
-  <h3>Erreurs sur l'accueil</h3>
-  <div class="demo-groupe">
-    <button type="button" data-erreur="court">Code trop court</button>
-    <button type="button" data-erreur="inconnu">Code inconnu</button>
-    <button type="button" data-erreur="fermee">Salle déjà fermée</button>
-    <button type="button" data-erreur="pleine">Salle pleine</button>
-    <button type="button" data-erreur="reseau">Pas de réseau</button>
-    <button type="button" data-erreur="navigateur">Navigateur incompatible</button>
-  </div>
-
-  <h3>Dans la salle</h3>
-  <div class="demo-groupe">
-    <button type="button" data-salle="exemples">Remplir d'exemples</button>
-    <button type="button" data-salle="vider">Vider</button>
-    <button type="button" data-salle="inactivite">Avertissement 2 min</button>
-    <button type="button" data-toast="Fichier reçu. Télécharge-le avant la fermeture.">Fichier reçu</button>
-    <button type="button" data-toast="Ce fichier est trop gros pour cet appareil. Essaie un fichier plus petit.">Trop gros à envoyer</button>
-    <button type="button" data-toast="Ce fichier est trop gros pour être reçu sur cet appareil.">Trop gros à recevoir</button>
-  </div>
-
-  <h3>Installation</h3>
-  <div class="demo-groupe">
-    <button type="button" data-install="ios">Encart iPhone</button>
-    <button type="button" data-install="pc">Bouton PC</button>
-  </div>
-</div>
-
 <!-- Petite bibliothèque qui dessine les QR codes -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <!-- PeerJS : le « standardiste » qui met les appareils en relation -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
-<script src="app.js?v=12.1"></script>
-<script src="inactivite.js?v=12.1"></script>
+<!-- Notre code, rangé par sujet (l'ordre compte : le socle d'abord, les écrans à la fin) -->
+<script src="app.js?v=12.2"></script>
+<script src="connexion.js?v=12.2"></script>
+<script src="messages.js?v=12.2"></script>
+<script src="fichiers.js?v=12.2"></script>
+<script src="reception.js?v=12.2"></script>
+<script src="ecrans.js?v=12.2"></script>
+<script src="inactivite.js?v=12.2"></script>
 </body>
 </html>
