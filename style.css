@@ -100,14 +100,6 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 .accueil { gap: 22px; }
 .accueil-gauche, .accueil-droite { display: flex; flex-direction: column; gap: 18px; }
 
-.logo {
-  align-self: flex-start;
-  background: #fff; color: var(--brun);
-  border-radius: 999px; padding: 4px 11px;
-  font-size: 13px; font-weight: 700; letter-spacing: .5px;
-  margin-top: 6px;
-}
-
 /* Le titre : « éphémère » s'efface doucement de gauche à droite */
 .titre {
   font-size: clamp(38px, 11vw, 60px);
