@@ -13,14 +13,17 @@ const PREFIXE = "partage-ephemere-";
 
 // Les paquets voyagent « bruts » (sans l'emballage de PeerJS, qui recoupait et recopiait
 // chaque morceau de fichier, et ralentissait tout) : un message part en texte (format JSON),
-// un morceau de fichier part tel quel, précédé de son numéro d'envoi (comme une étiquette sur un carton).
+// un morceau de fichier part tel quel, précédé de son numéro d'envoi et de sa position dans le fichier
+// (comme une étiquette « carton 12 » : on peut les remettre dans l'ordre à l'arrivée).
 function emballer(paquet) {
   if (paquet.type !== "morceau") return JSON.stringify(paquet);
   const id = new TextEncoder().encode(paquet.id);
-  const tout = new Uint8Array(1 + id.length + paquet.donnees.byteLength);
+  const debut = 1 + id.length + 8;
+  const tout = new Uint8Array(debut + paquet.donnees.byteLength);
   tout[0] = id.length;
   tout.set(id, 1);
-  tout.set(new Uint8Array(paquet.donnees), 1 + id.length);
+  new DataView(tout.buffer).setFloat64(1 + id.length, paquet.position);
+  tout.set(new Uint8Array(paquet.donnees), debut);
   return tout.buffer;
 }
 
@@ -30,7 +33,8 @@ function deballer(brut) {
     if (typeof brut === "string") return JSON.parse(brut);
     const n = new Uint8Array(brut, 0, 1)[0];
     const id = new TextDecoder().decode(new Uint8Array(brut, 1, n));
-    return { type: "morceau", id, donnees: brut.slice(1 + n) };
+    const position = new DataView(brut).getFloat64(1 + n);
+    return { type: "morceau", id, position, donnees: brut.slice(1 + n + 8) };
   } catch {
     return null;
   }
@@ -116,7 +120,7 @@ function essayerCode(essaisRestants) {
     ouvrirSalleHote();
   });
 
-  peer.on("connection", (conn) => accueillirInvite(conn));
+  peer.on("connection", (conn) => (conn.metadata && conn.metadata.renfort ? accueillirRenfort(conn) : accueillirInvite(conn)));
 
   // Si le lien avec le standardiste saute, on se réinscrit (les invités déjà là restent reliés)
   peer.on("disconnected", () => {
@@ -167,6 +171,7 @@ function accueillirInvite(conn) {
 
     surveillerCoupure(conn, () => {
       etat.invites = etat.invites.filter((i) => i !== invite);
+      fermerRenforts(conn);
       abandonnerReceptions(conn); // ce qu'il était en train d'envoyer n'arrivera jamais
       oublierCible(conn);         // et il ne recevra plus rien
       if (etat.peer) majPresence();
@@ -246,6 +251,7 @@ function rejoindreSalle(code) {
         champ.value = "";
         majCases();
         ouvrirSalleInvite(code);
+        ouvrirRenforts(peer, code, conn);
       }
       if (msg.type === "nombre") $("nombre-invite").textContent = texteNombre(msg.n);
       if (msg.type === "minuteur" && typeof msg.reste === "number") recevoirMinuteur(msg.reste);

@@ -10,8 +10,8 @@ const MORCEAU = 64 * 1024;             // 64 Ko par morceau
 const LECTURE = 1024 * 1024;           // on lit le fichier sur le disque par blocs d'1 Mo (16 morceaux)
 const TUYAU_PLEIN = 4 * 1024 * 1024;   // on ne laisse jamais plus de 4 Mo en attente dans le tuyau
 // Quand un invité envoie, l'hôte fait suivre aux autres. Pour que l'hôte ne soit jamais débordé,
-// il dit « bien reçu » (accusé de réception, voir reception.js), et l'invité n'a jamais plus de 8 Mo d'avance.
-const AVANCE_MAX = 8 * 1024 * 1024;
+// il dit « bien reçu » (accusé de réception, voir reception.js), et l'invité n'a jamais plus de 32 Mo d'avance.
+const AVANCE_MAX = 32 * 1024 * 1024;
 
 const TEXTE_TROP_GROS_ENVOI = "Ce fichier est trop gros pour cet appareil. Essaie un fichier plus petit.";
 
@@ -160,6 +160,7 @@ function attendreAccuse(envoi) {
 function oublierTransferts() {
   etat.envois.clear();
   etat.recus.clear();
+  enAvance.clear();
 }
 
 /* ---------- Envoyer ---------- */
@@ -215,8 +216,8 @@ async function transmettre(envoi) {
     while (envoye < fichier.size) {
       retirerCoupes(envoi);
       // On attend que les tuyaux se vident un peu avant d'ajouter un morceau
-      while (continuer() && [...envoi.cibles].some(tuyauPlein)) {
-        await Promise.all([...envoi.cibles].map(attendrePlace));
+      while (continuer() && [...envoi.cibles].some(ciblePleine)) {
+        await Promise.all([...envoi.cibles].map(attendrePlaceCible));
         retirerCoupes(envoi);
       }
       // L'invité attend que l'hôte suive (il fait passer le fichier aux autres en même temps)
@@ -232,7 +233,8 @@ async function transmettre(envoi) {
         if (!continuer()) break;
       }
       const donnees = bloc.slice(envoye - debutBloc, envoye - debutBloc + MORCEAU);
-      envoyerA(envoi.cibles, { type: "morceau", id, donnees });
+      // Chaque appareil reçoit le morceau par son tuyau le moins rempli
+      envoi.cibles.forEach((c) => envoyer(tuyauLibre(c), { type: "morceau", id, position: envoye, donnees }));
       envoye += donnees.byteLength;
       majProgression(envoi.carte, envoye, fichier.size);
     }

@@ -12,6 +12,10 @@ const ACCUSE = 1024 * 1024;            // (hôte) on dit « bien reçu » à l'i
 // (le fichier entier doit tenir dans la mémoire de Safari avant d'être téléchargé).
 const LIMITE_RECEPTION = estIOS ? 500 * 1024 * 1024 : Infinity;
 
+// Un morceau peut arriver par un renfort avant l'annonce « fichier-debut » (partie par le tuyau principal) :
+// on le garde de côté 10 secondes, le temps que l'annonce arrive
+const enAvance = new Map(); // numéro d'envoi → { conn, morceaux, minuteur }
+
 const TEXTE_TROP_GROS_RECU = "Ce fichier est trop gros pour être reçu sur cet appareil.";
 
 function recevoirPaquetFichier(role, de, conn, msg) {
@@ -59,6 +63,7 @@ function recevoirPaquetFichier(role, de, conn, msg) {
     const recu = {
       id, conn, de, nom, mime, garder: !tropGros, relais, accuse: 0,
       taille: msg.taille, recu: 0, morceaux: [], tailleMorceaux: 0, paquets: [],
+      enAttente: new Map(), // les morceaux arrivés en avance, rangés par position
     };
     if (recu.garder) {
       recu.carte = ajouterAuFil(role, carteEnCours(de, nom, recu.taille, () => arreterDeGarder(recu, "annule")));
@@ -66,55 +71,93 @@ function recevoirPaquetFichier(role, de, conn, msg) {
       noterLiaison(recu.carte, conn);
     }
     etat.recus.set(id, recu);
+    const attente = enAvance.get(id);
+    if (attente) {
+      enAvance.delete(id);
+      clearTimeout(attente.minuteur);
+      attente.morceaux.forEach((m) => recevoirPaquetFichier(role, de, attente.conn, m));
+    }
     return;
   }
 
   const recu = etat.recus.get(id);
-  if (!recu || recu.conn !== conn) return;
+  if (!recu) {
+    if (msg.type === "morceau") garderEnAvance(id, conn, msg);
+    return;
+  }
+  if (recu.conn !== conn) return;
 
   if (msg.type === "morceau") {
-    const donnees = msg.donnees;
-    if (!(donnees instanceof ArrayBuffer)) return;
-    recu.recu += donnees.byteLength;
-    if (recu.relais.size > 0) faireSuivre(recu, { type: "morceau", id, donnees });
-    if (role === "hote" && recu.recu - recu.accuse >= ACCUSE) envoyerAccuse(recu);
-    if (!recu.garder) return;
-    recu.morceaux.push(donnees);
-    recu.tailleMorceaux += donnees.byteLength;
-    try {
-      // Tous les 16 Mo, on range les morceaux dans un « Blob » (un fichier gardé par le navigateur),
-      // que l'ordinateur peut mettre sur son disque au lieu de tout garder en mémoire vive
-      if (recu.tailleMorceaux >= PAQUET_RECU) {
-        recu.paquets.push(new Blob(recu.morceaux));
-        recu.morceaux = [];
-        recu.tailleMorceaux = 0;
-      }
-    } catch {
-      return echecReception(recu);
+    if (!(msg.donnees instanceof ArrayBuffer) || !(msg.position >= recu.recu)) return;
+    // Les morceaux arrivent par plusieurs tuyaux, parfois dans le désordre : on les remet dans l'ordre
+    recu.enAttente.set(msg.position, msg.donnees);
+    while (recu.enAttente.has(recu.recu) && etat.recus.get(id) === recu) {
+      const donnees = recu.enAttente.get(recu.recu);
+      recu.enAttente.delete(recu.recu);
+      rangerMorceau(role, recu, donnees);
     }
-    majProgression(recu.carte, recu.recu, recu.taille);
+    finirReception(recu);
     return;
   }
 
   if (msg.type === "fichier-fin") {
-    etat.recus.delete(id);
-    if (recu.relais.size > 0) faireSuivre(recu, { type: "fichier-fin", id });
-    if (!recu.garder) return;
-    let blob;
-    try {
-      blob = new Blob([...recu.paquets, ...recu.morceaux], { type: recu.mime });
-    } catch {
-      return echecReception(recu);
-    }
-    terminerCarte(recu.carte, recu.de, recu.nom, blob, recu.heure);
-    afficherToast("Fichier reçu. Télécharge-le avant la fermeture.");
+    // La fin peut arriver avant les derniers morceaux (ils passent par d'autres tuyaux) : on attend qu'ils soient tous là
+    recu.finRecue = true;
+    finirReception(recu);
   }
+}
+
+function garderEnAvance(id, conn, msg) {
+  if (!enAvance.has(id)) {
+    enAvance.set(id, { conn, morceaux: [], minuteur: setTimeout(() => enAvance.delete(id), 10000) });
+  }
+  enAvance.get(id).morceaux.push(msg);
+}
+
+// Range un morceau arrivé dans l'ordre, le fait suivre aux autres invités et fait avancer la barre
+function rangerMorceau(role, recu, donnees) {
+  const position = recu.recu;
+  recu.recu += donnees.byteLength;
+  if (recu.relais.size > 0) faireSuivre(recu, { type: "morceau", id: recu.id, position, donnees });
+  if (role === "hote" && recu.recu - recu.accuse >= ACCUSE) envoyerAccuse(recu);
+  if (!recu.garder) return;
+  recu.morceaux.push(donnees);
+  recu.tailleMorceaux += donnees.byteLength;
+  try {
+    // Tous les 16 Mo, on range les morceaux dans un « Blob » (un fichier gardé par le navigateur),
+    // que l'ordinateur peut mettre sur son disque au lieu de tout garder en mémoire vive
+    if (recu.tailleMorceaux >= PAQUET_RECU) {
+      recu.paquets.push(new Blob(recu.morceaux));
+      recu.morceaux = [];
+      recu.tailleMorceaux = 0;
+    }
+  } catch {
+    return echecReception(recu);
+  }
+  majProgression(recu.carte, recu.recu, recu.taille);
+}
+
+// Le fichier est complet (la fin est annoncée et tous les morceaux sont là) : on fabrique le fichier
+function finirReception(recu) {
+  if (!recu.finRecue || recu.recu < recu.taille || etat.recus.get(recu.id) !== recu) return;
+  etat.recus.delete(recu.id);
+  if (recu.relais.size > 0) faireSuivre(recu, { type: "fichier-fin", id: recu.id });
+  if (!recu.garder) return;
+  let blob;
+  try {
+    blob = new Blob([...recu.paquets, ...recu.morceaux], { type: recu.mime });
+  } catch {
+    return echecReception(recu);
+  }
+  terminerCarte(recu.carte, recu.de, recu.nom, blob, recu.heure);
+  afficherToast("Fichier reçu. Télécharge-le avant la fermeture.");
 }
 
 // (hôte) Fait suivre un paquet aux invités qui reçoivent ce fichier par moi
 function faireSuivre(recu, paquet) {
   recu.relais.forEach((c) => {
-    if (c.open) envoyer(c, paquet);
+    // Les morceaux passent par le tuyau le moins rempli, les messages par le tuyau principal
+    if (c.open) envoyer(paquet.type === "morceau" ? tuyauLibre(c) : c, paquet);
     else recu.relais.delete(c);
   });
   lacherSiPersonne(recu);
@@ -125,9 +168,9 @@ function faireSuivre(recu, paquet) {
 async function envoyerAccuse(recu) {
   if (recu.accuseEnCours) return;
   recu.accuseEnCours = true;
-  const pleins = () => [...recu.relais].filter((c) => c.open && tuyauPlein(c));
+  const pleins = () => [...recu.relais].filter((c) => c.open && ciblePleine(c));
   while (etat.recus.get(recu.id) === recu && pleins().length > 0) {
-    await Promise.all(pleins().map(attendrePlace));
+    await Promise.all(pleins().map(attendrePlaceCible));
   }
   recu.accuseEnCours = false;
   if (etat.recus.get(recu.id) !== recu || !recu.conn.open) return;
