@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Test de vitesse</title>
+  <link rel="icon" href="icones/icone-192.png" type="image/png">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    /* Page de test provisoire : mesure la vitesse entre deux appareils avec 1, 2, 4 ou 8 tuyaux en même temps */
+    :root { --orange: #E2620E; --brun: #7A2E05; --creme: #FFF4E5; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: var(--orange); color: #fff; font-family: Montserrat, system-ui, sans-serif; }
+    main { max-width: 520px; margin: 0 auto; padding: 24px 16px; }
+    h1 { font-size: 24px; margin: 0 0 8px; }
+    p { line-height: 1.5; }
+    .carte { background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.3); border-radius: 18px; padding: 16px; margin: 16px 0; }
+    button { font: inherit; font-weight: 700; border: 0; border-radius: 999px; padding: 14px 20px; width: 100%; background: var(--creme); color: var(--brun); cursor: pointer; margin-top: 8px; }
+    button:disabled { opacity: .5; cursor: default; }
+    input { font: inherit; font-size: 24px; letter-spacing: 6px; text-align: center; width: 100%; padding: 12px; border-radius: 12px; border: 0; color: var(--brun); }
+    .code { font-size: 40px; font-weight: 800; letter-spacing: 8px; text-align: center; margin: 8px 0; }
+    table { width: 100%; border-collapse: collapse; }
+    td { padding: 8px 4px; border-top: 1px solid rgba(255,255,255,.3); }
+    td:last-child { text-align: right; font-weight: 800; }
+    #etat { font-weight: 600; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Test de vitesse</h1>
+  <p>Mesure la vitesse entre tes deux appareils, avec 1 tuyau puis plusieurs en même temps. Garde les deux pages au premier plan pendant le test (environ 40 secondes).</p>
+
+  <div class="carte">
+    <strong>Appareil qui REÇOIT</strong>
+    <button id="btn-recevoir">Recevoir</button>
+    <div id="code" class="code" hidden></div>
+  </div>
+
+  <div class="carte">
+    <strong>Appareil qui ENVOIE</strong>
+    <input id="champ" inputmode="numeric" maxlength="6" placeholder="code">
+    <button id="btn-envoyer">Lancer le test</button>
+  </div>
+
+  <p id="etat"></p>
+  <div class="carte" id="resultats" hidden><table id="tableau"></table></div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+<script>
+"use strict";
+const PREFIXE = "partage-vitesse-";
+const MORCEAU = new Uint8Array(64 * 1024);
+const DUREE = 6000; // chaque essai envoie pendant 6 secondes
+const ESSAIS = [
+  { nom: "1 tuyau", n: 1, reserve: 4 },
+  { nom: "1 tuyau, grande réserve", n: 1, reserve: 12 },
+  { nom: "2 tuyaux", n: 2, reserve: 4 },
+  { nom: "4 tuyaux", n: 4, reserve: 4 },
+  { nom: "8 tuyaux", n: 8, reserve: 4 },
+];
+const $ = (id) => document.getElementById(id);
+const etat = (t) => { $("etat").textContent = t; };
+
+function ligne(nom, valeur) {
+  $("resultats").hidden = false;
+  const tr = document.createElement("tr");
+  tr.innerHTML = "<td></td><td></td>";
+  tr.children[0].textContent = nom;
+  tr.children[1].textContent = valeur;
+  $("tableau").append(tr);
+}
+const moParSeconde = (octets, ms) =>
+  (octets / 1048576 / (ms / 1000)).toLocaleString("fr-FR", { maximumFractionDigits: 1 }) + " Mo/s";
+
+/* ---------- Celui qui reçoit ---------- */
+$("btn-recevoir").onclick = () => {
+  $("btn-recevoir").disabled = true;
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  const peer = new Peer(PREFIXE + code);
+  peer.on("open", () => {
+    $("code").hidden = false;
+    $("code").textContent = code;
+    etat("Tape ce code sur l'autre appareil.");
+  });
+  peer.on("error", (e) => etat("Erreur : " + e.type + ". Recharge la page."));
+  let manche = null;
+  peer.on("connection", (conn) => {
+    conn.on("data", (d) => {
+      if (typeof d !== "string") {
+        if (manche) {
+          if (!manche.t0) manche.t0 = performance.now();
+          manche.octets += d.byteLength;
+        }
+        return;
+      }
+      const m = JSON.parse(d);
+      if (m.t === "manche") {
+        if (!manche || manche.id !== m.id) manche = { id: m.id, n: m.n, nom: m.nom, octets: 0, t0: 0, fins: 0 };
+        etat("Test en cours : " + m.nom + "…");
+      }
+      if (m.t === "fin" && manche && manche.id === m.id) {
+        manche.fins += 1;
+        if (manche.fins === manche.n) {
+          const ms = performance.now() - manche.t0;
+          ligne(manche.nom, moParSeconde(manche.octets, ms));
+          conn.send(JSON.stringify({ t: "resultat", id: m.id, octets: manche.octets, ms }));
+          etat("Essai terminé.");
+        }
+      }
+    });
+  });
+};
+
+/* ---------- Celui qui envoie ---------- */
+function ouvrir(peer, id) {
+  return new Promise((ok, ko) => {
+    const conn = peer.connect(id, { reliable: true, serialization: "raw" });
+    conn.on("open", () => ok(conn));
+    conn.on("error", ko);
+    setTimeout(() => ko(new Error("délai")), 15000);
+  });
+}
+
+function attendrePlace(dc, reserve) {
+  if (dc.bufferedAmount <= reserve) return Promise.resolve();
+  dc.bufferedAmountLowThreshold = reserve / 2;
+  return new Promise((ok) => {
+    const fini = () => { dc.removeEventListener("bufferedamountlow", fini); clearTimeout(s); ok(); };
+    const s = setTimeout(fini, 1000);
+    dc.addEventListener("bufferedamountlow", fini);
+  });
+}
+
+async function essai(tuyaux, e) {
+  const id = Date.now() + "-" + e.n;
+  const conns = tuyaux.slice(0, e.n);
+  const reserve = e.reserve * 1048576;
+  const resultat = new Promise((ok) => {
+    const f = (d) => {
+      if (typeof d !== "string") return;
+      const m = JSON.parse(d);
+      if (m.t === "resultat" && m.id === id) { conns.forEach((c) => c.off("data", f)); ok(m); }
+    };
+    conns.forEach((c) => c.on("data", f));
+  });
+  conns.forEach((c) => c.dataChannel.send(JSON.stringify({ t: "manche", id, n: e.n, nom: e.nom })));
+  const fin = performance.now() + DUREE;
+  await Promise.all(conns.map(async (c) => {
+    const dc = c.dataChannel;
+    while (performance.now() < fin && dc.readyState === "open") {
+      await attendrePlace(dc, reserve);
+      dc.send(MORCEAU);
+    }
+    dc.send(JSON.stringify({ t: "fin", id }));
+  }));
+  const r = await resultat;
+  ligne(e.nom, moParSeconde(r.octets, r.ms));
+}
+
+$("btn-envoyer").onclick = async () => {
+  const code = $("champ").value.replace(/\D/g, "");
+  if (code.length !== 6) return etat("Tape le code à 6 chiffres affiché sur l'autre appareil.");
+  $("btn-envoyer").disabled = true;
+  $("tableau").textContent = "";
+  etat("Connexion des 8 tuyaux…");
+  const peer = new Peer();
+  peer.on("error", (e) => etat(e.type === "peer-unavailable" ? "Code inconnu. Vérifie le code, puis recharge la page." : "Erreur : " + e.type));
+  try {
+    await new Promise((ok) => peer.on("open", ok));
+    const tuyaux = [];
+    for (let i = 0; i < 8; i++) tuyaux.push(await ouvrir(peer, PREFIXE + code));
+    for (const e of ESSAIS) {
+      etat("Test en cours : " + e.nom + "…");
+      await essai(tuyaux, e);
+    }
+    etat("Terminé ! Envoie-moi ce tableau.");
+  } catch (err) {
+    console.error(err);
+    etat("La connexion n'a pas marché. Recharge les deux pages et réessaie.");
+  }
+};
+</script>
+</body>
+</html>
