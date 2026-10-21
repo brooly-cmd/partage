@@ -42,6 +42,16 @@ function majRebours() {
   document.querySelectorAll("[data-rebours]").forEach((s) => {
     s.textContent = " · Fermeture automatique dans " + min + " min";
   });
+  majAnneaux(Math.min(1, Math.max(0, (finPrevue - Date.now()) / DELAI)));
+}
+
+// L'anneau de la ligne d'état montre la part du temps qui reste (plein = 30 minutes),
+// comme une jauge d'essence
+const TOUR = 113.1; // la longueur du tour de l'anneau (2 × π × 18)
+function majAnneaux(part) {
+  document.querySelectorAll(".anneau-etat .reste").forEach((c) => {
+    c.style.strokeDashoffset = TOUR * (1 - part);
+  });
 }
 
 // Un toucher, un clic ou une touche du clavier de l'hôte compte comme une activité

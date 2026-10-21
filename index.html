@@ -15,9 +15,9 @@
   <meta name="apple-mobile-web-app-title" content="Vanishra">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=17">
-  <link rel="stylesheet" href="minuit.css?v=17">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=22">
+  <link rel="stylesheet" href="minuit.css?v=22">
 </head>
 <body data-ecran="accueil">
 
@@ -68,28 +68,38 @@
   <!-- ============ ÉCRAN 2 : SALLE DE L'HÔTE ============ -->
   <section class="ecran salle salle-hote" id="ecran-hote" data-nom="hote" hidden>
     <header class="salle-tete zone-tete">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"
+                stroke-dasharray="50 69.1" transform="rotate(-90 16 16)"/>
+        <circle cx="16" cy="16" r="3.5" fill="currentColor"/>
+      </svg>
       <h2>Ta salle</h2>
+      <button class="btn btn-rouge btn-sortie" id="btn-fermer" type="button">Fermer la salle</button>
     </header>
 
-    <div class="carte-code verre zone-code">
+    <div class="carte-code zone-code">
       <div class="plaques" id="plaques-hote" role="img" aria-label="Code de la salle : 482 915"></div>
-      <div class="qr-ligne">
-        <div class="qr" id="qr" role="img" aria-label="QR code de la salle"></div>
-        <p>Les invités scannent ce QR code avec l'appareil photo de leur téléphone.</p>
-      </div>
+      <div class="qr" id="qr" role="img" aria-label="QR code de la salle"></div>
+      <p class="aide">Les invités scannent ce QR code avec l'appareil photo de leur téléphone.</p>
       <div class="duo">
-        <button class="mini" type="button" id="btn-copier-code">
+        <button class="btn btn-second" type="button" id="btn-copier-code">
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
           Copier le code
         </button>
-        <button class="mini" type="button" id="btn-partager">
+        <button class="btn btn-second" type="button" id="btn-partager">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg>
           Partager le lien
         </button>
       </div>
     </div>
 
-    <p class="etat zone-etat"><span id="nombre-hote" aria-live="polite">0 personne connectée</span><span data-rebours></span></p>
+    <div class="etat zone-etat">
+      <svg class="anneau-etat" viewBox="0 0 44 44" aria-hidden="true">
+        <circle class="piste" cx="22" cy="22" r="18"/>
+        <circle class="reste" cx="22" cy="22" r="18" transform="rotate(-90 22 22)"/>
+      </svg>
+      <p><span id="nombre-hote" aria-live="polite">0 personne connectée</span><span data-rebours></span></p>
+    </div>
     <p class="invites zone-invites" id="invites-hote" hidden><b>Invités</b> <span id="liste-invites"></span></p>
 
     <div class="bandeau zone-bandeau" id="bandeau-hote"></div>
@@ -99,28 +109,35 @@
     <div class="bas zone-bas">
       <div class="depot">Glisse un fichier ici</div>
       <form class="compose" data-compose>
-        <button class="rond rond-ajout" type="button" aria-label="Ajouter un fichier" title="Ajouter un fichier" data-ajout>
+        <button class="rond" type="button" aria-label="Ajouter un fichier" title="Ajouter un fichier" data-ajout>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
         </button>
         <textarea rows="1" placeholder="Écrire un message…" aria-label="Écrire un message…" enterkeyhint="send"></textarea>
-        <button class="rond rond-envoi" type="submit" aria-label="Envoyer">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
-          <span class="txt">Envoyer</span>
-        </button>
+        <button class="btn btn-principal btn-envoi" type="submit">Envoyer</button>
       </form>
     </div>
-
-    <button class="btn btn-rouge zone-sortie" id="btn-fermer" type="button">Fermer la salle</button>
   </section>
 
   <!-- ============ ÉCRAN 3 : SALLE DE L'INVITÉ ============ -->
   <section class="ecran salle salle-invite" id="ecran-invite" data-nom="invite" hidden>
     <header class="salle-tete zone-tete">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"
+                stroke-dasharray="50 69.1" transform="rotate(-90 16 16)"/>
+        <circle cx="16" cy="16" r="3.5" fill="currentColor"/>
+      </svg>
       <h2>Salle <span id="code-invite">482 915</span></h2>
+      <button class="btn btn-second btn-sortie" id="btn-quitter" type="button">Quitter la salle</button>
       <span class="pastille"><span class="point" aria-hidden="true"></span>Connecté à l'hôte</span>
     </header>
 
-    <p class="etat zone-etat"><span id="nombre-invite" aria-live="polite">1 personne connectée</span><span data-rebours></span></p>
+    <div class="etat zone-etat">
+      <svg class="anneau-etat" viewBox="0 0 44 44" aria-hidden="true">
+        <circle class="piste" cx="22" cy="22" r="18"/>
+        <circle class="reste" cx="22" cy="22" r="18" transform="rotate(-90 22 22)"/>
+      </svg>
+      <p><span id="nombre-invite" aria-live="polite">1 personne connectée</span><span data-rebours></span></p>
+    </div>
     <div class="bandeau zone-bandeau">Télécharge tes fichiers avant la fermeture : rien n'est gardé.</div>
     <p class="info zone-info">Tu vois uniquement ce qui est envoyé après ton arrivée.</p>
 
@@ -129,18 +146,13 @@
     <div class="bas zone-bas">
       <div class="depot">Glisse un fichier ici</div>
       <form class="compose" data-compose>
-        <button class="rond rond-ajout" type="button" aria-label="Ajouter un fichier" title="Ajouter un fichier" data-ajout>
+        <button class="rond" type="button" aria-label="Ajouter un fichier" title="Ajouter un fichier" data-ajout>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
         </button>
         <textarea rows="1" placeholder="Écrire un message…" aria-label="Écrire un message…" enterkeyhint="send"></textarea>
-        <button class="rond rond-envoi" type="submit" aria-label="Envoyer">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
-          <span class="txt">Envoyer</span>
-        </button>
+        <button class="btn btn-principal btn-envoi" type="submit">Envoyer</button>
       </form>
     </div>
-
-    <button class="btn btn-contour zone-sortie" id="btn-quitter" type="button">Quitter la salle</button>
   </section>
 
   <!-- ============ ÉCRAN 4 : SALLE FERMÉE ============ -->
@@ -163,7 +175,7 @@
   <p id="conf-texte"></p>
   <div class="conf-boutons">
     <button class="btn btn-rouge" id="conf-oui" type="button"></button>
-    <button class="btn btn-annuler" id="conf-non" type="button">Annuler</button>
+    <button class="btn btn-second" id="conf-non" type="button">Annuler</button>
   </div>
 </dialog>
 
@@ -171,7 +183,7 @@
 <div class="alerte-inactivite" id="alerte-inactivite" role="alertdialog" aria-labelledby="alerte-texte" hidden>
   <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>
   <p id="alerte-texte">Sans activité, la salle se ferme dans 2 minutes.</p>
-  <button class="btn btn-orange" id="btn-rester" type="button">Rester</button>
+  <button class="btn btn-rester" id="btn-rester" type="button">Rester</button>
 </div>
 
 <!-- Petit message temporaire (« Code copié ✓ ») -->
@@ -182,14 +194,14 @@
 <!-- PeerJS : le « standardiste » qui met les appareils en relation -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
 <!-- Notre code, rangé par sujet (l'ordre compte : le socle d'abord, les écrans à la fin) -->
-<script src="app.js?v=17"></script>
-<script src="connexion.js?v=17"></script>
-<script src="tuyaux.js?v=17"></script>
-<script src="messages.js?v=17"></script>
-<script src="fichiers.js?v=17"></script>
-<script src="reception.js?v=17"></script>
-<script src="ecrans.js?v=17"></script>
-<script src="inactivite.js?v=17"></script>
-<script src="installation.js?v=17"></script>
+<script src="app.js?v=22"></script>
+<script src="connexion.js?v=22"></script>
+<script src="tuyaux.js?v=22"></script>
+<script src="messages.js?v=22"></script>
+<script src="fichiers.js?v=22"></script>
+<script src="reception.js?v=22"></script>
+<script src="ecrans.js?v=22"></script>
+<script src="inactivite.js?v=22"></script>
+<script src="installation.js?v=22"></script>
 </body>
 </html>

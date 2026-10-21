@@ -1,23 +1,11 @@
 /* =========================================================
-   Partage éphémère — la décoration de la page
-   Ancien style (maquette-partage-ephemere.html), gardé pour les salles
-   jusqu'à la mission 17. L'accueil et « Salle fermée » sont dans minuit.css.
+   Partage éphémère — le squelette de la page
+   Les réglages communs et la place de chaque bloc dans les salles,
+   comme le plan d'une maison. Le look (couleurs, police, formes,
+   mouvements) est dans minuit.css.
    ========================================================= */
 
 :root {
-  --orange: #E2620E;
-  --orange-profond: #C24E08;
-  --ambre: #F59E0B;
-  --brun: #7A2E05;
-  --brun-nuit: #3A1503;
-  --peche: #FCE3D0;
-  --creme: #FFF4E5;
-  --rouge: #B42318;
-  --rouge-clair: #FDECEA;
-  --rouge-texte: #912018;
-  --verre: rgba(255, 255, 255, .16);
-  --verre-bord: rgba(255, 255, 255, .3);
-
   --haut: max(16px, env(safe-area-inset-top));
   --bas: max(16px, env(safe-area-inset-bottom));
 }
@@ -25,38 +13,26 @@
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
 
-html {
-  min-height: 100%;
-  background-color: var(--orange);
-  background-image:
-    radial-gradient(110% 70% at 100% 0%, rgba(245, 158, 11, .55), transparent 60%),
-    linear-gradient(165deg, #E8680F 0%, var(--orange) 45%, var(--orange-profond) 100%);
-  background-attachment: fixed;
-}
-
+html { min-height: 100%; }
 body {
   margin: 0;
   min-height: 100dvh;
-  font-family: Montserrat, system-ui, sans-serif;
   font-size: 16px;
   line-height: 1.45;
-  color: #fff;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
 }
 
 h1, h2, h3, p { margin: 0; }
-button, input { font: inherit; color: inherit; }
-button { cursor: pointer; }
-svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
-
-:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; touch-action: manipulation; } /* pas d'attente du double-toucher sur iPhone */
+svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
 .lecteur { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ---------- Cadre général ---------- */
 .app {
-  max-width: 980px;
+  max-width: 1080px;
   margin: 0 auto;
   min-height: 100dvh;
   padding: var(--haut) 16px var(--bas);
@@ -65,310 +41,114 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 }
 .ecran { flex: 1; display: flex; flex-direction: column; }
 
-.verre { background: var(--verre); border: 1px solid var(--verre-bord); border-radius: 18px; }
-
-/* ---------- Boutons ---------- */
+/* ---------- Boutons : la forme commune ---------- */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  width: 100%; height: 50px; padding: 0 22px;
+  width: 100%; min-height: 44px; padding: 0 22px;
   border-radius: 999px; border: 0;
-  font-weight: 600; font-size: 16px;
-  transition: transform .12s ease, background-color .15s ease;
+  white-space: nowrap;
 }
-.btn:active { transform: scale(.98); }
-.btn-contour { background: transparent; color: #fff; border: 1.5px solid rgba(255, 255, 255, .8); }
-.btn-contour:hover { background: rgba(255, 255, 255, .12); }
-.btn-rouge { background: var(--rouge); color: #fff; border: 1.5px solid #fff; }
-.btn-rouge:hover { background: #9A1D13; }
-.btn-orange { background: var(--orange); color: #fff; }
-.btn-annuler { background: transparent; color: var(--brun); border: 1.5px solid #E2C3AE; }
-
-.mini {
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  background: #fff; color: var(--brun);
-  border: 0; border-radius: 999px;
-  min-height: 36px; padding: 0 14px;
-  font-size: 13px; font-weight: 600; white-space: nowrap;
-}
-.mini svg { width: 16px; height: 16px; }
-.mini:hover { background: var(--creme); }
+.btn:disabled { opacity: .6; cursor: wait; }
 
 /* =========================================================
    ÉCRANS 2 et 3 : LES SALLES (grille qui se réorganise PC / iPhone)
    ========================================================= */
 body[data-ecran="hote"] .app,
-body[data-ecran="invite"] .app { height: 100dvh; min-height: 620px; }
+body[data-ecran="invite"] .app { height: 100dvh; min-height: 600px; }
 
 .salle {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto auto auto auto minmax(90px, 1fr) auto auto;
-  gap: 10px;
+  gap: 12px;
   min-height: 0;
 }
 .salle-hote {
-  grid-template-rows: auto auto auto auto auto minmax(90px, 1fr) auto auto;
-  grid-template-areas: "tete" "code" "etat" "invites" "bandeau" "fil" "bas" "sortie";
+  grid-template-rows: auto auto auto auto auto minmax(90px, 1fr) auto;
+  grid-template-areas: "tete" "code" "etat" "invites" "bandeau" "fil" "bas";
 }
 .salle-invite {
-  grid-template-areas: "tete" "etat" "bandeau" "info" "fil" "bas" "sortie";
+  grid-template-rows: auto auto auto auto minmax(90px, 1fr) auto;
+  grid-template-areas: "tete" "etat" "bandeau" "info" "fil" "bas";
 }
 .zone-tete { grid-area: tete; } .zone-code { grid-area: code; } .zone-etat { grid-area: etat; }
 .zone-invites { grid-area: invites; } .zone-bandeau { grid-area: bandeau; } .zone-info { grid-area: info; }
-.zone-fil { grid-area: fil; } .zone-bas { grid-area: bas; } .zone-sortie { grid-area: sortie; }
+.zone-fil { grid-area: fil; } .zone-bas { grid-area: bas; }
 
-.salle-tete { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 36px; }
-.salle-tete h2 { font-size: 20px; font-weight: 700; }
-.pastille {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: #fff; color: var(--brun);
-  border-radius: 999px; padding: 5px 11px;
-  font-size: 13px; font-weight: 600; white-space: nowrap;
+/* L'en-tête : logo et titre à gauche, bouton de sortie à droite */
+.salle-tete { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.salle-tete h2 { flex: 1; white-space: nowrap; }
+.salle-tete .pastille { flex-basis: 100%; }
+.btn-sortie { width: auto; flex: none; margin-left: auto; } /* reste à droite, même s'il passe à la ligne */
+
+/* Le bloc du code : le code et l'aide à gauche, le QR à droite, les deux boutons dessous */
+.carte-code {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "code qr" "aide qr" "duo duo";
+  align-items: center;
 }
-.point { width: 8px; height: 8px; border-radius: 50%; background: #1F9D55; }
+.plaques { grid-area: code; display: flex; }
+.qr { grid-area: qr; }
+.aide { grid-area: aide; align-self: start; }
+.duo { grid-area: duo; display: flex; gap: 8px; }
+.duo .btn { flex: 1; min-width: 0; padding: 0 12px; }
 
-/* Carte du code */
-.carte-code { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
-.plaques { display: flex; gap: 5px; }
-.plaques span {
-  flex: 1; height: 54px;
-  background: #fff; color: var(--brun);
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 30px; font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  box-shadow: 0 2px 0 rgba(58, 21, 3, .18);
-}
-.plaques span:nth-child(4) { margin-left: 10px; }
+.etat { display: flex; align-items: center; gap: 12px; }
+.etat p { min-width: 0; }
 
-.qr-ligne { display: flex; gap: 12px; align-items: center; font-size: 13px; line-height: 1.4; }
-.qr {
-  width: 92px; height: 92px; flex: none;
-  background: #fff; border-radius: 10px; padding: 7px;
-}
-.qr svg { display: block; width: 100%; height: 100%; }
-.qr svg path { fill: var(--brun-nuit); stroke: none; }
-
-.duo { display: flex; gap: 8px; }
-.duo .mini { flex: 1; }
-
-.etat { font-size: 13px; font-weight: 500; }
-.etat [data-rebours] { white-space: nowrap; } /* « Fermeture automatique dans … » reste d'un seul bloc */
-.invites { font-size: 13px; }
-.invites b { font-weight: 700; }
-.invites b::after { content: " :"; }
-.info { font-size: 13px; }
-
-.bandeau {
-  background: var(--creme); color: var(--brun);
-  border-radius: 12px; padding: 9px 12px;
-  font-size: 13px; font-weight: 600; line-height: 1.35;
-}
-
-/* Le fil : messages et fichiers */
+/* Le fil : messages et fichiers, qui défile tout seul */
 .fil {
   min-height: 0; overflow-y: auto;
   display: flex; flex-direction: column; gap: 8px;
   overscroll-behavior: contain;
-  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.4) transparent;
 }
-.vide {
-  margin: auto; max-width: 28ch; text-align: center;
-  font-size: 15px; font-weight: 500; line-height: 1.5;
-  padding: 18px 8px; opacity: .95;
-}
-
-.msg {
-  background: var(--verre); border-radius: 16px;
-  padding: 10px 12px;
-  display: flex; flex-direction: column; gap: 6px;
-  animation: arriver .25s ease-out both;
-}
-@keyframes arriver { from { opacity: 0; transform: translateY(6px); } }
-.msg-tete { display: flex; gap: 8px; align-items: baseline; font-size: 12px; }
-.msg-tete b { font-weight: 700; }
-.msg-tete time { opacity: .85; }
-.msg-corps { display: flex; gap: 10px; align-items: center; }
-.msg-texte { flex: 1; min-width: 0; font-size: 14px; overflow-wrap: anywhere; white-space: pre-wrap; }
-.msg-fichier { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
-.msg-fichier small { display: block; font-size: 12px; font-weight: 500; opacity: .9; }
-.ft {
-  width: 38px; height: 38px; flex: none; border-radius: 10px;
-  background: #fff; color: var(--brun);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 10px; font-weight: 800;
-}
-.pourcent { font-weight: 700; font-size: 14px; }
-.barre { height: 6px; background: rgba(255, 255, 255, .3); border-radius: 4px; overflow: hidden; }
-.barre b { display: block; height: 100%; background: #fff; border-radius: 4px; }
-.msg-note { font-size: 12px; font-weight: 500; }
-.msg.interrompu { background: rgba(180, 35, 24, .35); }
+.msg { display: flex; flex-direction: column; }
+.msg-corps { display: flex; gap: 12px; align-items: center; }
+.msg-texte, .msg-fichier { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.msg-texte { white-space: pre-wrap; }
+.msg-fichier small { display: block; }
+.progres { display: flex; align-items: center; gap: 12px; }
+.barre { flex: 1; overflow: hidden; }
+.barre b { display: block; height: 100%; }
 .msg-actions { display: flex; gap: 8px; }
 
 /* Barre du bas */
 .bas { display: flex; flex-direction: column; gap: 8px; }
-.depot {
-  display: none;
-  border: 1.5px dashed rgba(255, 255, 255, .75); border-radius: 14px;
-  padding: 14px; text-align: center; font-size: 14px; font-weight: 500;
-}
-.compose {
-  display: flex; gap: 6px; align-items: flex-end;
-  background: #fff; border-radius: 26px; padding: 5px;
-}
-.compose textarea {
-  flex: 1; min-width: 0; border: 0; background: transparent;
-  color: var(--brun-nuit); font: inherit; font-size: 16px; line-height: 22px;
-  padding: 10px 4px; height: 42px; max-height: 120px;
-  resize: none; overflow-y: auto;
-}
-.compose textarea::placeholder { color: #9a6a4c; }
-.compose textarea:focus-visible { outline: none; }
-.compose:focus-within { box-shadow: 0 0 0 3px rgba(255,255,255,.7); }
-.rond {
-  width: 42px; height: 42px; flex: none;
-  border-radius: 999px; border: 0;
-  display: flex; align-items: center; justify-content: center;
-}
-.rond:focus-visible { outline-color: var(--brun); outline-offset: 2px; }
-.rond-ajout { background: var(--peche); color: var(--brun); }
-.rond-envoi { background: var(--orange); color: #fff; }
-.rond-envoi .txt { display: none; }
-
-/* =========================================================
-   Confirmation, avertissement, toast
-   ========================================================= */
-.confirmation {
-  border: 0; border-radius: 22px; padding: 20px;
-  width: min(440px, calc(100% - 24px)); max-width: none;
-  margin: auto auto var(--bas);
-  background: #fff; color: var(--brun-nuit);
-  box-shadow: 0 20px 60px rgba(58, 21, 3, .35);
-}
-.confirmation[open] { animation: monter .22s ease-out; }
-.confirmation::backdrop { background: rgba(58, 21, 3, .55); }
-.confirmation h2 { font-size: 20px; font-weight: 700; line-height: 1.25; }
-.confirmation p { font-size: 15px; color: var(--brun); margin: 8px 0 18px; }
-.conf-boutons { display: flex; flex-direction: column; gap: 10px; }
-.confirmation .btn-rouge { border-color: var(--rouge); }
-.confirmation :focus-visible { outline-color: var(--brun); }
-@keyframes monter { from { opacity: 0; transform: translateY(16px); } }
-
-.alerte-inactivite {
-  position: fixed; z-index: 30;
-  top: calc(var(--haut) + 4px); left: 50%; transform: translateX(-50%);
-  width: min(420px, calc(100% - 32px));
-  background: var(--creme); color: var(--brun);
-  border-radius: 18px; padding: 14px;
-  display: grid; grid-template-columns: auto 1fr; gap: 10px 10px; align-items: center;
-  box-shadow: 0 14px 40px rgba(58, 21, 3, .3);
-  animation: descendre .3s ease-out;
-}
-.alerte-inactivite p { font-size: 15px; font-weight: 700; line-height: 1.35; }
-.alerte-inactivite .btn { grid-column: 1 / -1; height: 46px; }
-.alerte-inactivite :focus-visible { outline-color: var(--brun); }
-@keyframes descendre { from { opacity: 0; transform: translate(-50%, -12px); } }
-
-.toast {
-  position: fixed; z-index: 40;
-  left: 50%; bottom: calc(var(--bas) + 60px);
-  transform: translate(-50%, 20px); opacity: 0;
-  max-width: calc(100% - 32px); width: max-content;
-  background: #fff; color: var(--brun);
-  border-radius: 16px; padding: 11px 16px;
-  font-size: 14px; font-weight: 600; text-align: center;
-  box-shadow: 0 10px 30px rgba(58, 21, 3, .3);
-  transition: opacity .2s ease, transform .2s ease;
-  pointer-events: none;
-}
-.toast.visible { opacity: 1; transform: translate(-50%, 0); }
-
-/* =========================================================
-   Petits écrans (iPhone SE) : on resserre
-   ========================================================= */
-@media (max-height: 700px) and (max-width: 899px) {
-  .qr { width: 72px; height: 72px; padding: 5px; }
-  .plaques span { height: 46px; font-size: 26px; }
-  .carte-code { gap: 10px; padding: 12px; }
-}
+.depot { display: none; }
+.compose { display: flex; gap: 8px; align-items: flex-end; }
+.compose textarea { flex: 1; min-width: 0; resize: none; overflow-y: auto; }
+.btn-envoi { width: auto; flex: none; }
 
 /* =========================================================
    VERSION PC (écran large)
    ========================================================= */
 @media (min-width: 900px) {
-  .app {
-    margin: 28px auto;
-    min-height: calc(100dvh - 56px);
-    padding: 32px 40px;
-    background: rgba(255, 255, 255, .07);
-    border: 1px solid rgba(255, 255, 255, .2);
-    border-radius: 32px;
-    box-shadow: 0 30px 80px rgba(122, 46, 5, .35);
-  }
-  body[data-ecran="hote"] .app,
-  body[data-ecran="invite"] .app { height: calc(100dvh - 56px); }
+  .app { padding: 40px 40px; }
 
-
-  /* Salle de l'hôte : colonne code à gauche, fil à droite */
+  /* Salle de l'hôte : colonne du code à gauche, fil à droite */
   .salle-hote {
-    grid-template-columns: 300px minmax(0, 1fr);
-    grid-template-rows: auto auto auto auto 1fr auto;
-    grid-template-areas:
-      "tete    bandeau"
-      "code    fil"
-      "etat    fil"
-      "invites fil"
-      ".       fil"
-      "sortie  bas";
-    column-gap: 28px; row-gap: 12px;
-  }
-  .salle-hote .zone-invites { display: block; background: var(--verre); border-radius: 14px; padding: 10px 12px; }
-  .invites b { display: block; margin-bottom: 2px; }
-  .invites b::after { content: none; }
-  .zone-sortie { align-self: end; }
-  .plaques span { height: 50px; font-size: 28px; }
-  .qr-ligne { flex-direction: column; align-items: flex-start; }
-  .qr { width: 150px; height: 150px; padding: 10px; }
-  .duo { flex-direction: column; }
-
-  /* Salle de l'invité : une colonne centrée, envoi + quitter côte à côte */
-  .salle-invite {
-    max-width: 780px; width: 100%; margin: 0 auto;
-    grid-template-columns: minmax(0, 1fr) 200px;
+    grid-template-columns: 340px minmax(0, 1fr);
     grid-template-rows: auto auto auto auto 1fr auto;
     grid-template-areas:
       "tete    tete"
-      "etat    etat"
-      "bandeau bandeau"
-      "info    info"
-      "fil     fil"
-      "bas     sortie";
-    column-gap: 10px;
+      "code    bandeau"
+      "code    fil"
+      "etat    fil"
+      "invites fil"
+      ".       bas";
+    column-gap: 32px; row-gap: 12px;
   }
-  .salle-invite .zone-sortie { height: 52px; }
+  .salle-hote .zone-code, .salle-hote .zone-invites { align-self: start; }
+  .carte-code { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "code code" "qr aide" "duo duo"; }
+  .duo { flex-direction: column; }
+
+  /* Salle de l'invité : une colonne centrée */
+  .salle-invite { max-width: 780px; width: 100%; margin: 0 auto; }
 
   .depot { display: block; }
-  .rond-envoi { width: auto; padding: 0 20px; }
-  .rond-envoi svg { display: none; }
-  .rond-envoi .txt { display: inline; font-weight: 600; font-size: 15px; }
-
-  .confirmation { margin: auto; }
 }
 
-/* Moins d'animations si l'appareil le demande */
+/* Moins d'animations si l'appareil le demande : tout s'affiche directement */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; transition-duration: .01ms !important; }
 }
-
-/* Mission 6 : bouton en attente pendant la connexion */
-.btn:disabled { opacity: .6; cursor: wait; }
-.salle-hote .zone-invites[hidden] { display: none; }
-
-/* Mission 8 : un fichier glissé au-dessus de la salle allume le cadre de dépôt */
-.depot { transition: background-color .15s, border-color .15s, transform .15s; }
-.salle.glisse .depot {
-  border-style: solid; border-color: #fff;
-  background: rgba(255, 255, 255, .22);
-  transform: scale(1.02);
-}
-.salle.glisse .depot::before { content: "↓ "; font-weight: 700; }

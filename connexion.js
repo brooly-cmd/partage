@@ -192,7 +192,15 @@ function majPresence() {
   const n = etat.invites.length;
   $("nombre-hote").textContent = texteNombre(n);
   $("invites-hote").hidden = n === 0;
-  $("liste-invites").textContent = etat.invites.map((i) => i.nom).join(" · ");
+  // Une pastille ronde par invité (« I1 »), avec le nom complet pour les lecteurs d'écran
+  $("liste-invites").replaceChildren(...etat.invites.map((i) => {
+    const pastille = creer("span", "pers");
+    pastille.title = i.nom;
+    const court = creer("span", "", i.nom.replace("Invité ", "I"));
+    court.setAttribute("aria-hidden", "true");
+    pastille.append(court, creer("span", "lecteur", i.nom));
+    return pastille;
+  }));
   envoyerA(autresInvites(), { type: "nombre", n });
 }
 

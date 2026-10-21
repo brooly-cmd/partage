@@ -1,11 +1,12 @@
 /* =========================================================
    Partage éphémère — le style « Minuit » (voir DESIGN.md)
-   Mission 16 : l'accueil et « Salle fermée ».
-   Les salles gardent l'ancien style (style.css) jusqu'à la mission 17.
+   Couleurs, police, formes et mouvements de tous les écrans.
+   La place des blocs est dans style.css.
    ========================================================= */
 
 /* Les couleurs : Jour par défaut, Nuit si l'appareil est en mode sombre */
 :root {
+  color-scheme: light dark; /* les barres de défilement et la fenêtre de confirmation suivent aussi */
   --fond: #f2f2f0; --carte: #ffffff; --carte2: #e2e2de; --texte: #0a0a0a; --doux: #55554f;
   --accent: #4a7a00; --logo: #0a0a0a; --bouton: #0a0a0a; --bouton-texte: #ffffff;
   --danger: #c4242a; --danger-texte: #ffffff; --alerte-fond: #0a0a0a; --alerte-texte: #ffffff;
@@ -18,24 +19,32 @@
   }
 }
 
-/* Le fond de la page, seulement sur les écrans déjà au nouveau look */
-html:has(body[data-ecran="accueil"]),
-html:has(body[data-ecran="fermee"]) { background: var(--fond); }
-
-.accueil, .fermee {
+html { background: var(--fond); }
+body {
   font-family: "Bricolage Grotesque", system-ui, sans-serif;
   color: var(--texte);
+  background: var(--fond);
 }
-.accueil :focus-visible, .fermee :focus-visible { outline: 3px solid var(--texte); outline-offset: 3px; }
+:focus-visible { outline: 3px solid var(--texte); outline-offset: 3px; }
 
 /* ---------- Boutons pilules ---------- */
-.btn-principal { background: var(--bouton); color: var(--bouton-texte); font-weight: 600; }
-.btn-second { background: var(--carte2); color: var(--texte); font-weight: 600; }
-.btn-principal, .btn-second { height: 52px; font-size: 15px; }
-.btn-principal:active, .btn-second:active { transform: scale(.96); }
+.btn, .mini, .rond { font-weight: 600; font-size: 15px; transition: transform .12s ease, opacity .15s ease; }
+.btn-principal, .mini-principal { background: var(--bouton); color: var(--bouton-texte); }
+.btn-second, .mini, .rond { background: var(--carte2); color: var(--texte); }
+.btn-rouge { background: var(--danger); color: var(--danger-texte); }
+.btn-principal, .btn-second { height: 52px; }
+.btn:active, .mini:active, .rond:active { transform: scale(.96); }
 @media (hover: hover) {
-  .btn-principal:hover, .btn-second:hover { opacity: .88; }
+  .btn:hover, .mini:hover, .rond:hover { opacity: .88; }
 }
+
+/* Petits boutons des cartes (Copier, Télécharger, Annuler…) : 44 px de haut pour le pouce */
+.mini {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: none;
+  min-height: 44px; padding: 0 16px;
+  border: 0; border-radius: 999px; white-space: nowrap;
+}
+.mini-principal { background: var(--bouton); color: var(--bouton-texte); }
 
 /* ---------- Le logo : l'anneau qui se vide ---------- */
 .logo { color: var(--logo); stroke: none; }
@@ -43,12 +52,12 @@ html:has(body[data-ecran="fermee"]) { background: var(--fond); }
 @keyframes vider { from { stroke-dasharray: 69.1 69.1; } }
 
 /* ---------- Les blocs s'allument l'un après l'autre en arrivant ---------- */
-.accueil-gauche > *, .accueil-droite > *, .accueil > .pied, .fermee > * { animation: allumer .6s ease-out both; }
-.accueil-gauche > :nth-child(2), .fermee > :nth-child(2) { animation-delay: 50ms; }
-.accueil-gauche > :nth-child(3), .fermee > :nth-child(3) { animation-delay: 100ms; }
-.accueil-gauche > :nth-child(4), .accueil-droite > :nth-child(1), .fermee > :nth-child(4) { animation-delay: 150ms; }
-.accueil-droite > :nth-child(2), .fermee > :nth-child(5) { animation-delay: 200ms; }
-.accueil-droite > :nth-child(n+3), .accueil > .pied { animation-delay: 250ms; }
+.accueil-gauche > *, .accueil-droite > *, .accueil > .pied, .fermee > *, .salle > * { animation: allumer .6s ease-out both; }
+.accueil-gauche > :nth-child(2), .fermee > :nth-child(2), .salle > :nth-child(2) { animation-delay: 50ms; }
+.accueil-gauche > :nth-child(3), .fermee > :nth-child(3), .salle > :nth-child(3) { animation-delay: 100ms; }
+.accueil-gauche > :nth-child(4), .accueil-droite > :nth-child(1), .fermee > :nth-child(4), .salle > :nth-child(4) { animation-delay: 150ms; }
+.accueil-droite > :nth-child(2), .fermee > :nth-child(5), .salle > :nth-child(5) { animation-delay: 200ms; }
+.accueil-droite > :nth-child(n+3), .accueil > .pied, .salle > :nth-child(n+6) { animation-delay: 250ms; }
 @keyframes allumer { from { opacity: 0; } }
 
 /* =========================================================
@@ -108,6 +117,163 @@ html:has(body[data-ecran="fermee"]) { background: var(--fond); }
 .pied { margin-top: auto; padding-top: 16px; text-align: center; font-size: 13px; color: var(--doux); }
 
 /* =========================================================
+   ÉCRANS 2 et 3 : LES SALLES
+   ========================================================= */
+.salle-tete { min-height: 52px; }
+.salle-tete .logo { width: 24px; height: 24px; }
+.salle-tete h2 { font-size: 32px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; }
+.salle-invite .salle-tete h2 { font-size: clamp(22px, 6.4vw, 32px); }
+.btn-sortie { height: 44px; padding: 0 16px; font-size: 14px; }
+
+.pastille {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding-left: 34px; /* aligné sous le titre, après le logo */
+  font-size: 13px; color: var(--doux);
+}
+.point { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+
+/* Le bloc du code : le code en très grand, le QR toujours noir sur blanc */
+.carte-code { background: var(--carte); border-radius: 20px; padding: 16px; gap: 12px 16px; }
+.plaques {
+  font-size: 48px; font-weight: 700; line-height: 1;
+  letter-spacing: -.03em; font-variant-numeric: tabular-nums;
+}
+.plaques span:nth-child(4) { margin-left: .28em; }
+.aide { font-size: 13px; line-height: 1.4; color: var(--doux); max-width: 26ch; }
+.qr {
+  width: 100px; height: 100px;
+  background: #fff; border-radius: 12px; padding: 4px;
+}
+.qr svg { display: block; width: 100%; height: 100%; }
+.qr svg path { fill: #111; stroke: none; }
+.duo .btn { height: 44px; font-size: 14px; }
+.duo svg { width: 18px; height: 18px; }
+
+/* La ligne d'état : l'anneau qui se vide, puis le nombre de personnes et le temps restant */
+.etat { font-size: 14px; line-height: 1.35; text-wrap: balance; }
+.anneau-etat { width: 40px; height: 40px; }
+.anneau-etat circle { fill: none; stroke-width: 5; }
+.anneau-etat .piste { stroke: var(--carte2); }
+.anneau-etat .reste {
+  stroke: var(--accent); stroke-linecap: round;
+  stroke-dasharray: 113.1; stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1.4s cubic-bezier(.2, .7, .2, 1);
+}
+
+/* Les invités : une pastille ronde par personne */
+.invites { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 15px; }
+.invites b { font-weight: 400; }
+.invites b::after { content: " :"; }
+#liste-invites { display: contents; }
+.pers {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--carte2);
+  display: grid; place-items: center;
+  font-size: 12px; font-weight: 700;
+}
+
+.bandeau, .info { font-size: 15px; line-height: 1.4; }
+.bandeau { background: var(--alerte-fond); color: var(--alerte-texte); border-radius: 14px; padding: 12px 14px; }
+.info { color: var(--doux); }
+
+/* Le fil : messages et fichiers */
+.fil { scrollbar-width: thin; scrollbar-color: var(--carte2) transparent; }
+.vide {
+  margin: auto; max-width: 30ch; text-align: center;
+  font-size: 15px; line-height: 1.5; color: var(--doux);
+  padding: 24px 8px;
+}
+
+.msg {
+  background: var(--carte); border-radius: 20px;
+  padding: 14px 16px; gap: 10px; flex: none;
+  animation: allumer .3s ease-out both;
+}
+.msg-tete { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; font-size: 13px; }
+.msg-tete b { font-weight: 600; }
+.msg-tete time { color: var(--doux); font-variant-numeric: tabular-nums; }
+.msg-texte { font-size: 16px; }
+.msg-fichier { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* nom trop long : coupé avec « … » */
+.msg-fichier small { font-size: 13px; font-weight: 400; color: var(--doux); margin-top: 2px; }
+.ft {
+  width: 40px; height: 40px; flex: none; border-radius: 10px;
+  background: var(--carte2);
+  display: grid; place-items: center;
+  font-size: 11px; font-weight: 700;
+}
+.barre { height: 10px; background: var(--carte2); border-radius: 999px; }
+.barre b { background: var(--accent); border-radius: 999px; transition: width .2s linear; }
+.pourcent { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 4ch; text-align: right; }
+.msg-note { font-size: 13px; color: var(--doux); }
+.msg.interrompu .msg-fichier small { color: var(--texte); font-weight: 600; }
+
+/* Barre du bas : ajouter un fichier, écrire, envoyer */
+.depot {
+  background: var(--carte); border-radius: 20px;
+  padding: 14px; text-align: center; font-size: 15px; color: var(--doux);
+  transition: transform .15s ease;
+}
+.salle.glisse .depot { background: var(--bouton); color: var(--bouton-texte); transform: scale(1.02); }
+.salle.glisse .depot::before { content: "↓ "; font-weight: 700; }
+.rond {
+  width: 48px; height: 48px; flex: none;
+  border-radius: 50%; border: 0;
+  display: grid; place-items: center;
+}
+.rond svg { width: 22px; height: 22px; }
+.compose textarea {
+  background: var(--carte); color: var(--texte);
+  border: 0; border-radius: 24px;
+  font-size: 16px; line-height: 22px; /* 16px : évite le zoom auto de l'iPhone */
+  padding: 13px 14px; height: 48px; max-height: 120px;
+}
+.compose textarea::placeholder { color: var(--doux); white-space: nowrap; }
+.compose textarea:focus-visible { outline-offset: 0; }
+.btn-envoi { height: 48px; padding: 0 18px; }
+
+/* =========================================================
+   Confirmation, avertissement, bulle
+   ========================================================= */
+.confirmation {
+  border: 0; border-radius: 20px; padding: 20px;
+  width: min(440px, calc(100% - 32px)); max-width: none;
+  margin: auto auto var(--bas);
+  background: var(--carte); color: var(--texte);
+}
+.confirmation[open] { animation: allumer .2s ease-out; }
+.confirmation::backdrop { background: rgba(0, 0, 0, .72); }
+.confirmation h2 { font-size: 20px; font-weight: 700; line-height: 1.25; letter-spacing: -.01em; }
+.confirmation p { font-size: 15px; color: var(--doux); margin: 8px 0 20px; }
+.conf-boutons { display: flex; flex-direction: column; gap: 8px; }
+.conf-boutons .btn { height: 48px; }
+
+.alerte-inactivite {
+  position: fixed; z-index: 30;
+  top: calc(var(--haut) + 4px); left: 16px; right: 16px; margin: 0 auto;
+  max-width: 420px;
+  background: var(--alerte-fond); color: var(--alerte-texte);
+  border-radius: 14px; padding: 14px;
+  display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center;
+  animation: allumer .3s ease-out;
+}
+.alerte-inactivite p { font-size: 15px; font-weight: 600; line-height: 1.35; }
+.alerte-inactivite :focus-visible { outline-color: var(--alerte-texte); }
+.btn-rester { grid-column: 1 / -1; height: 48px; background: var(--alerte-texte); color: var(--alerte-fond); }
+
+.toast {
+  position: fixed; z-index: 40;
+  left: 50%; top: calc(var(--haut) + 4px);
+  width: max-content; max-width: calc(100% - 32px);
+  background: var(--texte); color: var(--fond);
+  border-radius: 999px; padding: 12px 20px;
+  font-size: 15px; font-weight: 600; text-align: center;
+  opacity: 0; transform: translate(-50%, -8px);
+  transition: opacity .2s ease, transform .2s ease;
+  pointer-events: none;
+}
+.toast.visible { opacity: 1; transform: translate(-50%, 0); }
+
+/* =========================================================
    ÉCRAN 4 : SALLE FERMÉE
    ========================================================= */
 .fermee {
@@ -130,12 +296,18 @@ html:has(body[data-ecran="fermee"]) { background: var(--fond); }
 @keyframes eteindre { to { opacity: 0; } }
 
 /* =========================================================
+   Petits écrans (iPhone SE) : on resserre
+   ========================================================= */
+@media (max-height: 700px) and (max-width: 899px) {
+  .plaques { font-size: 40px; }
+  .qr { width: 80px; height: 80px; }
+  .carte-code { padding: 14px; }
+}
+
+/* =========================================================
    VERSION PC (écran large)
    ========================================================= */
 @media (min-width: 900px) {
-  body[data-ecran="accueil"] .app,
-  body[data-ecran="fermee"] .app { background: none; border: 0; border-radius: 0; box-shadow: none; }
-
   .accueil {
     display: grid;
     grid-template-columns: 1.1fr .9fr;
@@ -147,8 +319,16 @@ html:has(body[data-ecran="fermee"]) { background: var(--fond); }
   .carte-rejoindre { padding: 24px; }
   .pied { grid-column: 1 / -1; text-align: left; }
 
+  .carte-code { padding: 24px; }
+  .plaques { font-size: 64px; }
+  .etat { font-size: 15px; }
+  .etat [data-rebours] { white-space: nowrap; } /* « Fermeture automatique dans … » reste d'un seul bloc */
+  .qr { width: 140px; height: 140px; }
+
   .fermee-boutons { flex-direction: row; justify-content: center; }
   .fermee-boutons .btn { width: auto; min-width: 200px; }
+
+  .confirmation { margin: auto; }
 }
 
 /* Moins d'animations si l'appareil le demande : le point ne respire plus */

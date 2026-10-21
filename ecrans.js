@@ -66,6 +66,7 @@ function ouvrirSalleHote() {
 /* ---------- Écran 3 : salle de l'invité ---------- */
 function ouvrirSalleInvite(code) {
   $("code-invite").textContent = formaterCode(code);
+  majAnneaux(1); // l'anneau part plein, puis se vide jusqu'au temps restant annoncé par l'hôte
   viderFil("invite");
   afficherEcran("invite");
 }

@@ -5,8 +5,9 @@
 "use strict";
 
 // Un petit bouton (« Copier », « Télécharger », « Annuler »…) qui fait quelque chose au clic
-function petitBouton(texte, quandClic) {
-  const bouton = creer("button", "mini", texte);
+// (principal = le bouton plein, pour l'action la plus importante de la carte)
+function petitBouton(texte, quandClic, principal) {
+  const bouton = creer("button", principal ? "mini mini-principal" : "mini", texte);
   bouton.type = "button";
   bouton.addEventListener("click", quandClic);
   return bouton;
@@ -43,12 +44,11 @@ function carteMessage(m) {
 
   if (m.type === "fichier") {
     nom.append(creer("small", "", m.taille));
-    corps.append(petitBouton("Télécharger", () => telechargerFichier(m.blob, m.nom)));
+    corps.append(petitBouton("Télécharger", () => telechargerFichier(m.blob, m.nom), true));
   }
 
   if (m.type === "envoi") {
     nom.append(creer("small", "", m.taille));
-    corps.append(creer("span", "pourcent", m.pourcent + " %"));
     const barre = creer("div", "barre");
     barre.setAttribute("role", "progressbar");
     barre.setAttribute("aria-label", m.nom);
@@ -56,8 +56,10 @@ function carteMessage(m) {
     const rempli = creer("b");
     rempli.style.width = m.pourcent + "%";
     barre.append(rempli);
-    carte.append(barre, creer("p", "msg-note", "Garde cet écran ouvert pendant l'envoi."),
-      rangeeBoutons(petitBouton("Annuler", m.annuler)));
+    // La barre, « 62 % » à droite, puis Annuler, sur une seule ligne
+    const progres = creer("div", "progres");
+    progres.append(barre, creer("span", "pourcent", m.pourcent + " %"), petitBouton("Annuler", m.annuler));
+    carte.append(progres, creer("p", "msg-note", "Garde cet écran ouvert pendant l'envoi."));
   }
 
   if (m.type === "interrompu") {
