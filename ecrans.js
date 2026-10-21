@@ -79,13 +79,13 @@ function afficherFermee(cle) {
   afficherEcran("fermee");
 }
 
-// La salle « s'évapore » doucement avant d'afficher l'écran fermé
+// La salle « s'éteint » d'un coup avant d'afficher l'écran fermé
 function fermerAvecEffet(cle) {
   const salle = document.querySelector(".ecran:not([hidden])");
   const sansAnimation = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (!salle || sansAnimation) return afficherFermee(cle);
   salle.classList.add("dissout");
-  setTimeout(() => afficherFermee(cle), 550);
+  setTimeout(() => afficherFermee(cle), 450);
 }
 
 /* ---------- Écran 1 : le champ du code (6 cases) ---------- */

@@ -3,7 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#E2620E">
+  <meta name="theme-color" content="#f2f2f0" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
   <title>Partage éphémère</title>
   <!-- Pour s'installer comme une app : carte d'identité, icône et nom sur l'écran d'accueil -->
   <link rel="manifest" href="manifest.webmanifest">
@@ -14,8 +15,9 @@
   <meta name="apple-mobile-web-app-title" content="Vanishra">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=16">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=17">
+  <link rel="stylesheet" href="minuit.css?v=17">
 </head>
 <body data-ecran="accueil">
 
@@ -24,12 +26,14 @@
   <!-- ============ ÉCRAN 1 : ACCUEIL ============ -->
   <section class="ecran accueil" id="ecran-accueil" data-nom="accueil">
     <div class="accueil-gauche">
-      <h1 class="titre">
-        <span class="lecteur">Partage éphémère</span>
-        <span aria-hidden="true">Partage<br><span class="evapore">éphémère</span></span>
-      </h1>
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+        <circle class="anneau" cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"
+                stroke-dasharray="50 69.1" transform="rotate(-90 16 16)"/>
+        <circle cx="16" cy="16" r="3.5" fill="currentColor"/>
+      </svg>
+      <h1 class="titre">Partage<br>éphémère</h1>
       <p class="sous-titre">Envoie du texte et des fichiers, sans compte. Tout disparaît à la fermeture.</p>
-      <button class="btn btn-blanc btn-creer" id="btn-creer" type="button">
+      <button class="btn btn-principal btn-creer" id="btn-creer" type="button">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
         Créer une salle
       </button>
@@ -38,7 +42,7 @@
     <div class="accueil-droite">
       <div class="separateur"><span>ou</span></div>
 
-      <form class="carte-rejoindre verre" id="form-rejoindre" novalidate>
+      <form class="carte-rejoindre" id="form-rejoindre" novalidate>
         <label for="champ-code" class="etiquette">Code à 6 chiffres</label>
         <div class="cases" id="cases">
           <span class="case"></span><span class="case"></span><span class="case"></span>
@@ -48,14 +52,14 @@
                  aria-describedby="erreur-code">
         </div>
         <p class="erreur" id="erreur-code" role="alert" hidden></p>
-        <button class="btn btn-contour" type="submit">Rejoindre</button>
+        <button class="btn btn-principal" type="submit">Rejoindre</button>
       </form>
 
       <div class="encart-installation" id="encart-ios" hidden>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>
         <p>Installer l'app : touche Partager, puis Sur l'écran d'accueil.</p>
       </div>
-      <button class="btn btn-contour btn-installer" id="btn-installer" type="button" hidden>Installer l'app</button>
+      <button class="btn btn-second btn-installer" id="btn-installer" type="button" hidden>Installer l'app</button>
     </div>
 
     <p class="pied">Aucun compte. Aucun stockage en ligne.</p>
@@ -141,15 +145,13 @@
 
   <!-- ============ ÉCRAN 4 : SALLE FERMÉE ============ -->
   <section class="ecran fermee" id="ecran-fermee" data-nom="fermee" hidden>
-    <div class="cercle" aria-hidden="true">
-      <svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17"/></svg>
-    </div>
+    <span class="respire" aria-hidden="true"></span>
     <h2>La salle est fermée</h2>
     <p class="raison" id="raison"></p>
     <p class="commune">Les messages et les fichiers ont été supprimés.</p>
     <div class="fermee-boutons">
-      <button class="btn btn-blanc" id="btn-retour" type="button">Retour à l'accueil</button>
-      <button class="btn btn-contour" id="btn-nouvelle" type="button" hidden>Créer une nouvelle salle</button>
+      <button class="btn btn-principal" id="btn-retour" type="button">Retour à l'accueil</button>
+      <button class="btn btn-second" id="btn-nouvelle" type="button" hidden>Créer une nouvelle salle</button>
     </div>
   </section>
 
@@ -180,14 +182,14 @@
 <!-- PeerJS : le « standardiste » qui met les appareils en relation -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
 <!-- Notre code, rangé par sujet (l'ordre compte : le socle d'abord, les écrans à la fin) -->
-<script src="app.js?v=16"></script>
-<script src="connexion.js?v=16"></script>
-<script src="tuyaux.js?v=16"></script>
-<script src="messages.js?v=16"></script>
-<script src="fichiers.js?v=16"></script>
-<script src="reception.js?v=16"></script>
-<script src="ecrans.js?v=16"></script>
-<script src="inactivite.js?v=16"></script>
-<script src="installation.js?v=16"></script>
+<script src="app.js?v=17"></script>
+<script src="connexion.js?v=17"></script>
+<script src="tuyaux.js?v=17"></script>
+<script src="messages.js?v=17"></script>
+<script src="fichiers.js?v=17"></script>
+<script src="reception.js?v=17"></script>
+<script src="ecrans.js?v=17"></script>
+<script src="inactivite.js?v=17"></script>
+<script src="installation.js?v=17"></script>
 </body>
 </html>
