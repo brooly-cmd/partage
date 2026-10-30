@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Partage éphémère — le monde</title>
+<meta name="theme-color" content="#ecebe6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter+Tight:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{ --fond:#ecebe6; --texte:#121212; --doux:#5b5b56; --accent:#d63d12; --carte2:#dcdbd5; }
+  @media (prefers-color-scheme:dark){
+    :root{ --fond:#0d0d0d; --texte:#f1f0eb; --doux:#a8a7a1; --accent:#ff6a3d; --carte2:#2b2b2b; }
+  }
+  html,body{ margin:0; height:100%; background:var(--fond); color:var(--texte); overflow:hidden;
+    font-family:"Inter Tight",system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  #scene{ position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; cursor:grab; outline:none; }
+  #scene:active{ cursor:grabbing; }
+  /* Écran de chargement : un pourcentage, puis un fondu */
+  #chargement{ position:fixed; inset:0; display:grid; place-content:center; gap:14px; justify-items:center;
+    background:var(--fond); transition:opacity 1.2s cubic-bezier(.16,1,.3,1), visibility 0s 1.2s; z-index:2; }
+  #chargement.fini{ opacity:0; visibility:hidden; }
+  #pourcent{ font-family:"Instrument Serif",serif; font-size:64px; line-height:1; letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums; }
+  #piste{ width:120px; height:2px; background:var(--carte2); overflow:hidden; }
+  #barre{ height:100%; width:0; background:var(--accent); transition:width .4s cubic-bezier(.16,1,.3,1); }
+  #aide{ position:fixed; left:0; right:0; bottom:max(20px, env(safe-area-inset-bottom)); text-align:center;
+    font-size:13px; color:var(--doux); pointer-events:none; z-index:1; }
+  #fps{ position:fixed; top:12px; left:12px; font:13px/1 ui-monospace,monospace; color:var(--doux); z-index:1; }
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}
+</script>
+</head>
+<body>
+<canvas id="scene" aria-label="L'atelier posé sur une platine de disque"></canvas>
+<div id="chargement" role="status" aria-live="polite">
+  <div id="pourcent">0 %</div>
+  <div id="piste"><div id="barre"></div></div>
+</div>
+<p id="aide">Glisse pour faire tourner la platine</p>
+<script type="module" src="monde.js"></script>
+</body>
+</html>
