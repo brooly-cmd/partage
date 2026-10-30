@@ -7,455 +7,587 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700&family=Manrope:wght@400;600&family=Cormorant+Garamond:wght@500;600&family=Jost:wght@400;500&family=Instrument+Serif&family=Inter+Tight:wght@400;600&family=Unbounded:wght@500;700&family=DM+Sans:wght@400;600&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Figtree:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Jost:wght@400;500&family=Syne:wght@600;700&family=Manrope:wght@400;600&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Figtree:wght@400;600&family=Unbounded:wght@500;700&family=DM+Sans:wght@400;600&family=Instrument+Serif&family=Inter+Tight:wght@400;600&display=swap" rel="stylesheet">
 <style>
-/* ---------- La page de choix (neutre, pour laisser parler les styles) ---------- */
-:root{
-  --p-fond:#f1f1ef; --p-carte:#ffffff; --p-texte:#111111; --p-doux:#55554f; --p-bouton:#111111; --p-bouton-texte:#ffffff; --p-pastille:#e3e3df;
-}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){
-    --p-fond:#0c0c0c; --p-carte:#161616; --p-texte:#f2f2f2; --p-doux:#b0b0aa; --p-bouton:#f2f2f2; --p-bouton-texte:#111111; --p-pastille:#2a2a2a;
-  }
-}
-:root[data-theme="dark"]{
-  --p-fond:#0c0c0c; --p-carte:#161616; --p-texte:#f2f2f2; --p-doux:#b0b0aa; --p-bouton:#f2f2f2; --p-bouton-texte:#111111; --p-pastille:#2a2a2a;
-}
+/* Les couleurs de l'interface changent avec le style choisi (voir STYLES plus bas) */
+:root{--fond:#ebe8e4;--carte:#fff;--carte2:#e2ded8;--texte:#141414;--doux:#5a5650;--accent:#17694f;--bouton:#141414;--bouton-texte:#fff;--danger:#c3302b;
+  --police-titre:"Cormorant Garamond",serif;--police-texte:"Jost",sans-serif}
 *{box-sizing:border-box;margin:0}
 html{-webkit-text-size-adjust:100%}
-body{background:var(--p-fond);color:var(--p-texte);font:16px/1.5 "DM Sans",system-ui,sans-serif;padding-bottom:150px}
-button,textarea{font:inherit;color:inherit}
+body{background:var(--fond);color:var(--texte);font:16px/1.5 var(--police-texte);min-height:100svh;transition:background-color .6s,color .6s}
+button,input{font:inherit;color:inherit}
 button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-:focus-visible{outline:3px solid #2f6fed;outline-offset:2px}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.cache{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 
-.entete{padding:28px 16px 8px;max-width:1100px;margin:0 auto}
-.entete h1{font-size:clamp(28px,6vw,44px);line-height:1.05;letter-spacing:-.03em;font-weight:600}
-.entete p{color:var(--p-doux);margin-top:10px;max-width:60ch}
+.tete{display:flex;align-items:flex-start;gap:12px;padding:14px 16px 0;max-width:1100px;margin:0 auto}
+.tete .qui{flex:1;min-width:0}
+.tete .num{font-size:14px;color:var(--doux)}
+.tete h1{font-family:var(--police-titre);font-size:clamp(32px,7vw,52px);line-height:1;letter-spacing:-.02em;font-weight:600}
+.mots{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.mots span{font-size:13px;padding:4px 10px;border-radius:999px;background:var(--carte2)}
+.modes{display:flex;background:var(--carte2);border-radius:999px;padding:3px;flex:0 0 auto}
+.modes button{min-height:44px;min-width:56px;border:0;border-radius:999px;background:transparent;font-size:14px;font-weight:600}
+.modes button[aria-pressed="true"]{background:var(--carte)}
 
-.outils{position:sticky;top:0;z-index:5;background:var(--p-fond);padding:10px 16px}
-.outils-dedans{max-width:1100px;margin:0 auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.onglets{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1 1 auto}
-.onglets::-webkit-scrollbar{display:none}
-.onglet{flex:0 0 auto;min-height:44px;padding:0 16px;border:0;border-radius:999px;background:var(--p-pastille);font-weight:600;font-size:15px}
-.onglet[aria-current="true"]{background:var(--p-bouton);color:var(--p-bouton-texte)}
-.modes{display:flex;background:var(--p-pastille);border-radius:999px;padding:3px}
-.modes button{min-height:44px;min-width:64px;border:0;border-radius:999px;background:transparent;font-size:14px;font-weight:600}
-.modes button[aria-pressed="true"]{background:var(--p-carte)}
+.monde{position:relative;max-width:1100px;margin:10px auto 0;height:min(50svh,620px);min-height:320px}
+#scene{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+.monde .chargement{position:absolute;inset:0;display:grid;place-items:center;color:var(--doux);font-size:14px;pointer-events:none}
+.monde .indice{position:absolute;left:16px;top:10px;font-size:13px;color:var(--doux);pointer-events:none}
 
-.rail{position:relative;display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;padding:12px 16px 24px;scroll-padding:16px;scrollbar-width:thin;overscroll-behavior-x:contain}
-.carte-style{flex:0 0 min(400px,calc(100vw - 32px));scroll-snap-align:start;background:var(--p-carte);border-radius:28px;padding:18px;display:flex;flex-direction:column;gap:18px}
-.carte-style.choisi{outline:3px solid var(--p-texte);outline-offset:-3px}
-.carte-tete h2{font-size:26px;letter-spacing:-.02em;line-height:1.1}
-.carte-tete .num{color:var(--p-doux);font-size:14px}
-.carte-tete p{margin-top:6px}
-.bloc h3{font-size:15px;margin-bottom:8px}
-.bloc p,.bloc li{font-size:15px}
-.bloc ul{padding-left:18px;display:grid;gap:6px}
-.pourquoi{color:var(--p-doux)}
-.nuancier{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center;font-size:14px}
-.nuancier .ronds{display:flex;gap:6px}
-.nuancier .rond{width:30px;height:30px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(127,127,127,.35)}
-.logos{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-.icone-app{width:60px;height:60px;border-radius:14px;display:grid;place-items:center}
-.icone-app svg{width:34px;height:34px}
-.polices .exemple-titre{font-size:30px;line-height:1.1}
-.polices .exemple-texte{font-size:16px;margin-top:4px}
-.choisir{min-height:52px;border:0;border-radius:999px;background:var(--p-bouton);color:var(--p-bouton-texte);font-weight:600;font-size:16px}
-.choisi .choisir{background:var(--p-pastille);color:var(--p-texte)}
+/* Aperçu de la salle, posé dans le monde */
+.salle{position:relative;z-index:2;max-width:420px;margin:-64px auto 0;background:var(--carte);border-radius:var(--rayon,22px);padding:14px;display:grid;gap:10px;
+  box-shadow:0 18px 40px rgba(0,0,0,.18);margin-left:16px;margin-right:16px}
+@media (min-width:460px){.salle{margin-left:auto;margin-right:auto}}
+.salle .ligne{display:flex;align-items:center;gap:10px}
+.salle .titre{font-family:var(--police-titre);font-size:24px;line-height:1;font-weight:600;flex:1}
+.salle .fermer{min-height:40px;padding:0 14px;border:0;border-radius:var(--rayon-bouton,999px);background:var(--danger);color:#fff;font-size:14px;font-weight:600}
+.salle .code{font-family:var(--police-titre);font-size:40px;line-height:1;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums;flex:1;white-space:nowrap}
+.salle .qr{width:58px;height:58px;background:#fff;border-radius:8px;padding:3px;flex:0 0 auto}
+.salle .etat{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--doux)}
+.salle .etat svg{width:24px;height:24px;flex:0 0 auto}
+.salle .bas{display:grid;grid-template-columns:44px 1fr auto;gap:6px}
+.salle .plus{width:44px;height:44px;border:0;border-radius:50%;background:var(--carte2);font-size:22px;line-height:1}
+.salle .champ{min-height:44px;border-radius:var(--rayon-bouton,999px);background:var(--carte2);color:var(--doux);display:flex;align-items:center;padding:0 14px;font-size:15px}
+.salle .envoyer{min-height:44px;padding:0 16px;border:0;border-radius:var(--rayon-bouton,999px);background:var(--bouton);color:var(--bouton-texte);font-weight:600;font-size:15px}
 
-.barre-choix{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--p-carte);padding:10px 16px calc(12px + env(safe-area-inset-bottom));box-shadow:0 -8px 24px rgba(0,0,0,.12)}
-.barre-dedans{max-width:1100px;margin:0 auto;display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
-.barre-choix .resume{flex:1 1 100%;font-size:14px;line-height:1.3}
-.barre-choix input{flex:1 1 140px;min-width:0;min-height:46px;border:0;border-radius:999px;background:var(--p-pastille);padding:0 16px;font:inherit;font-size:16px;color:inherit}
-.barre-choix .copier{min-height:46px;padding:0 20px;border:0;border-radius:999px;background:var(--p-bouton);color:var(--p-bouton-texte);font-weight:600}
-.bulle{position:fixed;top:16px;left:50%;transform:translate(-50%,-20px);opacity:0;background:var(--p-texte);color:var(--p-fond);padding:10px 18px;border-radius:999px;font-weight:600;transition:.25s;z-index:9;pointer-events:none}
+.texte{max-width:620px;margin:0 auto;padding:18px 16px 0;display:grid;gap:14px}
+.texte .idee{font-size:17px}
+details{background:var(--carte);border-radius:18px;padding:0 16px}
+summary{min-height:52px;display:flex;align-items:center;font-weight:600;cursor:pointer}
+details .dedans{display:grid;gap:14px;padding-bottom:16px;font-size:15px}
+details h3{font-size:15px;margin-bottom:4px}
+details ul{padding-left:18px;display:grid;gap:4px}
+.ronds{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ronds i{width:28px;height:28px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(127,127,127,.4)}
+.logos{display:flex;gap:14px;align-items:center}
+.icone{width:60px;height:60px;border-radius:14px;display:grid;place-items:center}
+.icone svg{width:34px;height:34px}
+
+.pied{position:sticky;bottom:0;z-index:5;margin-top:18px;background:var(--fond);padding:10px 16px calc(10px + env(safe-area-inset-bottom));transition:background-color .6s}
+.pied .rang{max-width:620px;margin:0 auto;display:flex;gap:8px;flex-wrap:wrap}
+.pied .nav{min-height:48px;padding:0 18px;border:0;border-radius:999px;background:var(--carte2);font-weight:600}
+.pied .choisir{flex:1;min-height:48px;border:0;border-radius:999px;background:var(--bouton);color:var(--bouton-texte);font-weight:600}
+.envoi-choix{display:flex;gap:8px;flex-wrap:wrap}
+.envoi-choix input{flex:1 1 150px;min-width:0;min-height:48px;border:0;border-radius:999px;background:var(--carte);padding:0 16px;font-size:16px}
+.envoi-choix .copier{min-height:48px;padding:0 18px;border:0;border-radius:999px;background:var(--bouton);color:var(--bouton-texte);font-weight:600}
+.envoi-choix .resume{flex:1 1 100%;font-size:15px;color:var(--doux)}
+.points{display:flex;gap:6px;justify-content:center;flex:1 1 100%}
+.points i{width:8px;height:8px;border-radius:50%;background:var(--carte2)}
+.points i.on{background:var(--texte)}
+.bulle{position:fixed;top:16px;left:50%;transform:translate(-50%,-20px);opacity:0;background:var(--texte);color:var(--fond);padding:10px 18px;border-radius:999px;font-weight:600;transition:.25s;z-index:9;pointer-events:none}
 .bulle.vue{opacity:1;transform:translate(-50%,0)}
-
-/* ---------- Le téléphone : la salle de l'hôte, dessinée dans chaque style ---------- */
-.tel{border-radius:34px;padding:10px;background:#1b1b1b}
-.ecran{border-radius:26px;overflow:hidden;background:var(--fond);color:var(--texte);font-family:var(--police-texte);font-size:14px;line-height:1.45;padding:14px 14px 12px;display:flex;flex-direction:column;gap:12px;position:relative;isolation:isolate}
-.ecran *{font-family:inherit}
-.haut{display:flex;align-items:center;gap:8px}
-.haut .marque{display:flex;align-items:center;gap:6px;font-weight:600;font-size:13px;color:var(--texte)}
-.haut .marque svg{width:22px;height:22px;color:var(--logo)}
-.haut .fermer{margin-left:auto;min-height:36px;padding:0 14px;border:0;border-radius:var(--rayon-bouton);background:var(--danger);color:#fff;font-size:13px;font-weight:600}
-.titre-salle{font-family:var(--police-titre);font-size:30px;line-height:1;letter-spacing:var(--titre-serre);font-weight:var(--titre-graisse)}
-.scene{position:relative;display:grid;place-items:center;height:210px;border-radius:var(--rayon-carte);background:var(--scene-fond);overflow:hidden}
-.scene svg.objet{width:180px;height:180px;overflow:visible}
-.scene .temps{position:absolute;bottom:10px;left:0;right:0;text-align:center;font-size:12px;color:var(--scene-doux)}
-.code-bloc{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;background:var(--carte);border-radius:var(--rayon-carte);padding:14px}
-.code{font-family:var(--police-titre);font-size:38px;line-height:1;letter-spacing:var(--code-serre);font-weight:var(--titre-graisse);font-variant-numeric:tabular-nums;white-space:nowrap}
-.qr{width:74px;height:74px;background:#fff;border-radius:10px;padding:4px;grid-row:span 2}
-.aide{font-size:12px;color:var(--doux);line-height:1.35}
-.duo{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.btn2{min-height:40px;border:0;border-radius:var(--rayon-bouton);background:var(--carte2);color:var(--texte);font-size:13px;font-weight:600}
-.etat{display:flex;gap:10px;align-items:center;font-size:12.5px}
-.etat svg{width:30px;height:30px;flex:0 0 auto}
-.bandeau{background:var(--alerte-fond);color:var(--alerte-texte);border-radius:12px;padding:9px 12px;font-size:12.5px}
-.msg{background:var(--carte);border-radius:var(--rayon-carte);padding:12px}
-.msg .qui{display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:4px}
-.msg .qui span{color:var(--doux);font-weight:400}
-.fichier{display:grid;grid-template-columns:38px 1fr auto;gap:10px;align-items:center}
-.vignette{width:38px;height:38px;border-radius:var(--rayon-vignette);background:var(--carte2);display:grid;place-items:center;font-size:10px;font-weight:700}
-.fichier .nom{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fichier .taille{font-size:12px;color:var(--doux)}
-.piste{height:8px;border-radius:99px;background:var(--carte2);margin-top:10px;overflow:hidden}
-.piste i{display:block;height:100%;width:62%;background:var(--accent);border-radius:99px;transform-origin:left}
-.ligne-envoi{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12px}
-.ligne-envoi button{min-height:32px;padding:0 12px;border:0;border-radius:var(--rayon-bouton);background:var(--carte2);color:var(--texte);font-size:12px;font-weight:600}
-.bas{display:grid;grid-template-columns:40px 1fr auto;gap:6px;align-items:center}
-.bas .plus{width:40px;height:40px;border:0;border-radius:50%;background:var(--carte2);color:var(--texte);font-size:20px;line-height:1}
-.bas .champ{min-height:40px;border-radius:var(--rayon-bouton);background:var(--carte);color:var(--doux);display:flex;align-items:center;padding:0 12px;font-size:13px}
-.bas .envoyer{min-height:40px;padding:0 14px;border:0;border-radius:var(--rayon-bouton);background:var(--bouton);color:var(--bouton-texte);font-weight:600;font-size:13px}
-
-/* ---------- 1. GLACE ---------- */
-[data-s="glace"]{--police-titre:"Syne",sans-serif;--police-texte:"Manrope",sans-serif;--titre-graisse:700;--titre-serre:-.02em;--code-serre:-.01em;
-  --rayon-carte:22px;--rayon-bouton:999px;--rayon-vignette:10px}
-[data-s="glace"][data-mode="jour"]{--fond:#e9f0f4;--carte:#ffffff;--carte2:#d6e5ee;--texte:#0b1c26;--doux:#4a5d68;--accent:#0b6e99;--logo:#0b6e99;
-  --bouton:#0b1c26;--bouton-texte:#ffffff;--danger:#c3303b;--alerte-fond:#0b1c26;--alerte-texte:#e9f0f4;--scene-fond:#d3e6f0;--scene-doux:#3e5664;--glace-a:#ffffff;--glace-b:#7cc6e6}
-[data-s="glace"][data-mode="nuit"]{--fond:#04111a;--carte:#0c2230;--carte2:#173749;--texte:#eef7fb;--doux:#9fb6c2;--accent:#8fdcff;--logo:#8fdcff;
-  --bouton:#eef7fb;--bouton-texte:#04111a;--danger:#d23a45;--alerte-fond:#173749;--alerte-texte:#d7f2ff;--scene-fond:#081b27;--scene-doux:#9fb6c2;--glace-a:#e8f8ff;--glace-b:#3aa4d6}
-/* ---------- 2. ÉCRIN ---------- */
-[data-s="ecrin"]{--police-titre:"Cormorant Garamond",serif;--police-texte:"Jost",sans-serif;--titre-graisse:600;--titre-serre:-.01em;--code-serre:.02em;
-  --rayon-carte:6px;--rayon-bouton:4px;--rayon-vignette:4px}
-[data-s="ecrin"][data-mode="jour"]{--fond:#f3efed;--carte:#ffffff;--carte2:#e8dfdc;--texte:#1f0d10;--doux:#6b5458;--accent:#7d1426;--logo:#7d1426;
-  --bouton:#1f0d10;--bouton-texte:#ffffff;--danger:#c8322b;--alerte-fond:#1f0d10;--alerte-texte:#f3efed;--scene-fond:#5c0f1e;--scene-doux:#f0cdd3;--metal-a:#ffffff;--metal-b:#9aa0a6}
-[data-s="ecrin"][data-mode="nuit"]{--fond:#120709;--carte:#211013;--carte2:#3a1c22;--texte:#f7eef0;--doux:#c7aeb3;--accent:#e0687c;--logo:#e7dfe0;
-  --bouton:#f7eef0;--bouton-texte:#120709;--danger:#d63a33;--alerte-fond:#3a1c22;--alerte-texte:#ffd9df;--scene-fond:#3d0913;--scene-doux:#e9bcc4;--metal-a:#ffffff;--metal-b:#8b9096}
-/* ---------- 3. DISQUE ---------- */
-[data-s="disque"]{--police-titre:"Instrument Serif",serif;--police-texte:"Inter Tight",sans-serif;--titre-graisse:400;--titre-serre:-.02em;--code-serre:-.02em;
-  --rayon-carte:0px;--rayon-bouton:0px;--rayon-vignette:50%}
-[data-s="disque"][data-mode="jour"]{--fond:#ebeae5;--carte:#f8f8f5;--carte2:#dcdbd5;--texte:#121212;--doux:#5b5b56;--accent:#d63d12;--logo:#121212;
-  --bouton:#121212;--bouton-texte:#ffffff;--danger:#c42b1c;--alerte-fond:#121212;--alerte-texte:#ebeae5;--scene-fond:#dcdbd5;--scene-doux:#4d4d48}
-[data-s="disque"][data-mode="nuit"]{--fond:#0d0d0d;--carte:#191919;--carte2:#2b2b2b;--texte:#f1f0eb;--doux:#a8a7a1;--accent:#ff6a3d;--logo:#ff6a3d;
-  --bouton:#f1f0eb;--bouton-texte:#0d0d0d;--danger:#d8392a;--alerte-fond:#2b2b2b;--alerte-texte:#ffd6c8;--scene-fond:#151515;--scene-doux:#a8a7a1}
-/* ---------- 4. BILLES ---------- */
-[data-s="billes"]{--police-titre:"Unbounded",sans-serif;--police-texte:"DM Sans",sans-serif;--titre-graisse:700;--titre-serre:-.03em;--code-serre:-.03em;
-  --rayon-carte:28px;--rayon-bouton:999px;--rayon-vignette:50%}
-[data-s="billes"][data-mode="jour"]{--fond:#f4f4f2;--carte:#ffffff;--carte2:#e6e7ee;--texte:#0e0e10;--doux:#5b5b63;--accent:#2340ff;--logo:#2340ff;
-  --bouton:#2340ff;--bouton-texte:#ffffff;--danger:#d3302f;--alerte-fond:#0e0e10;--alerte-texte:#f4f4f2;--scene-fond:#ffffff;--scene-doux:#5b5b63;--bille-a:#ffffff;--bille-b:#0e0e10}
-[data-s="billes"][data-mode="nuit"]{--fond:#0b0b0d;--carte:#17171b;--carte2:#272730;--texte:#f4f4f6;--doux:#a6a6af;--accent:#7387ff;--logo:#7387ff;
-  --bouton:#7387ff;--bouton-texte:#0b0b0d;--danger:#cf3130;--alerte-fond:#272730;--alerte-texte:#dfe4ff;--scene-fond:#121216;--scene-doux:#a6a6af;--bille-a:#ffffff;--bille-b:#3a3a44}
-/* ---------- 5. PETITE PLANÈTE ---------- */
-[data-s="planete"]{--police-titre:"Fraunces",serif;--police-texte:"Figtree",sans-serif;--titre-graisse:600;--titre-serre:-.02em;--code-serre:-.01em;
-  --rayon-carte:24px;--rayon-bouton:999px;--rayon-vignette:12px}
-[data-s="planete"][data-mode="jour"]{--fond:#e5eee0;--carte:#fbfdf8;--carte2:#d2e1ca;--texte:#16251a;--doux:#4b5f50;--accent:#e2522e;--logo:#16251a;
-  --bouton:#16251a;--bouton-texte:#fbfdf8;--danger:#c2302a;--alerte-fond:#16251a;--alerte-texte:#e5eee0;--scene-fond:#bcd9e6;--scene-doux:#2c4a3a;--sol-a:#9fd17f;--sol-b:#3f8a4c}
-[data-s="planete"][data-mode="nuit"]{--fond:#0e1b15;--carte:#172a21;--carte2:#24402f;--texte:#eef5ec;--doux:#a9bdae;--accent:#ff8a6a;--logo:#ff8a6a;
-  --bouton:#eef5ec;--bouton-texte:#0e1b15;--danger:#d63b33;--alerte-fond:#24402f;--alerte-texte:#ffe3d9;--scene-fond:#0a1730;--scene-doux:#a9bdae;--sol-a:#6fae68;--sol-b:#1f4f33}
-
-/* ---------- Mouvements des scènes ---------- */
-@keyframes tourne{to{transform:rotate(360deg)}}
-@keyframes bague{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.82)}}
-@keyframes reflet{from{stroke-dashoffset:0}to{stroke-dashoffset:-440}}
-@keyframes chute{0%{transform:translate(0,0);opacity:1}100%{transform:translate(var(--dx,6px),120px);opacity:0}}
-@keyframes pousse{0%,100%{transform:translate(0,0)}40%{transform:translate(var(--px),var(--py))}}
-@keyframes respire{0%,100%{opacity:.55}50%{opacity:1}}
-.irise{position:absolute;top:50%;left:50%;width:158px;height:158px;margin:-79px 0 0 -79px;border-radius:50%;
-  background:conic-gradient(from 20deg,#f5f5f2,#bfe7ff,#f7d6ff,#fff2c4,#c9ffe6,#f5f5f2,#ffd2c2,#d2dcff,#f5f5f2);animation:tourne 6s linear infinite}
-.orbite-tourne{transform-origin:100px 100px;animation:tourne 22s linear infinite}
-.bague-tourne{transform-origin:100px 100px;animation:bague 5s ease-in-out infinite}
-.glint{animation:reflet 4.5s cubic-bezier(.6,0,.4,1) infinite}
-.spot{animation:respire 5s ease-in-out infinite}
-.bille.tombe{animation:chute .9s cubic-bezier(.5,0,.9,.6) forwards}
-.bille.pousse{animation:pousse .5s cubic-bezier(.3,1.6,.5,1)}
-@media (prefers-reduced-motion:reduce){
-  *,*::before,*::after{animation:none!important;transition:none!important}
-}
-@media (min-width:900px){
-  .rail{padding-left:max(16px,calc((100vw - 1100px)/2));scroll-padding-left:max(16px,calc((100vw - 1100px)/2))}
-}
+.credits{max-width:620px;margin:16px auto 0;padding:0 16px;font-size:13px;color:var(--doux)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}
+</script>
 </head>
 <body>
 
-<header class="entete">
-  <h1>Ton nouveau look : 5 styles</h1>
-  <p>Chaque style garde l'anneau qui se vide comme logo. Glisse d'un style à l'autre, essaie le jour et la nuit, puis choisis en bas de la page.</p>
+<header class="tete">
+  <div class="qui">
+    <p class="num" id="num">Style 1 sur 5</p>
+    <h1 id="nom">Vitrine</h1>
+    <div class="mots" id="mots" aria-label="Mots-clés"></div>
+  </div>
+  <div class="modes" role="group" aria-label="Jour ou nuit">
+    <button type="button" data-mode="jour" aria-pressed="true">Jour</button>
+    <button type="button" data-mode="nuit" aria-pressed="false">Nuit</button>
+  </div>
 </header>
 
-<div class="outils">
-  <div class="outils-dedans">
-    <nav class="onglets" aria-label="Aller à un style" id="onglets"></nav>
-    <div class="modes" role="group" aria-label="Jour ou nuit">
-      <button type="button" data-mode="jour" aria-pressed="false">Jour</button>
-      <button type="button" data-mode="nuit" aria-pressed="false">Nuit</button>
-    </div>
+<div class="monde" id="monde">
+  <canvas id="scene" aria-label="Scène 3D : l'anneau qui montre le temps qui reste. Tourne-la au doigt."></canvas>
+  <p class="chargement" id="chargement">Chargement de la scène…</p>
+  <p class="indice" id="indice">Tourne la scène au doigt</p>
+</div>
+
+<section class="salle" id="salle" aria-label="Aperçu de la salle dans ce style">
+  <div class="ligne"><span class="titre">Ta salle</span><button type="button" class="fermer" tabindex="-1">Fermer la salle</button></div>
+  <div class="ligne"><span class="code">482 915</span><svg class="qr" id="qr" viewBox="0 0 21 21" shape-rendering="crispEdges" aria-hidden="true"></svg></div>
+  <p class="etat"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="15" fill="none" stroke="var(--carte2)" stroke-width="5"/><circle id="mini-anneau" cx="20" cy="20" r="15" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-dasharray="75 94.2" transform="rotate(-90 20 20)"/></svg>
+    <span id="etat">3 personnes connectées · Fermeture automatique dans 24 min</span></p>
+  <div class="bas"><button type="button" class="plus" tabindex="-1" aria-label="Ajouter un fichier">+</button><span class="champ">Écrire un message…</span><button type="button" class="envoyer" tabindex="-1">Envoyer</button></div>
+</section>
+
+<div class="texte">
+  <p class="idee" id="idee"></p>
+  <details>
+    <summary>Couleurs, polices, logo et effets</summary>
+    <div class="dedans" id="details"></div>
+  </details>
+  <div class="envoi-choix">
+    <p class="resume" id="resume" aria-live="polite">Aucun style choisi pour l'instant.</p>
+    <label class="cache" for="melange">Mélange (facultatif)</label>
+    <input id="melange" type="text" placeholder="Mélange, ex. : couleurs du 2, logo du 4" autocomplete="off">
+    <button type="button" class="copier" id="copier">Copier mon choix</button>
   </div>
 </div>
 
-<main class="rail" id="rail"></main>
+<p class="credits">Matières et éclairage : Poly Haven (marbre, parquet, plâtre, studio), licence CC0. 3D : Three.js.</p>
 
-<div class="barre-choix">
-  <div class="barre-dedans">
-    <p class="resume" id="resume" aria-live="polite">Aucun style choisi pour l'instant.</p>
-    <label class="sr" for="melange" style="position:absolute;left:-9999px">Mélange (facultatif)</label>
-    <input id="melange" type="text" placeholder="Mélange (facultatif)" autocomplete="off">
-    <button type="button" class="copier" id="copier">Copier mon choix</button>
+<div class="pied">
+  <div class="rang">
+    <div class="points" id="points" aria-hidden="true"></div>
+    <button type="button" class="nav" id="prec" aria-label="Style précédent">←</button>
+    <button type="button" class="choisir" id="choisir" aria-pressed="false">Je choisis Vitrine</button>
+    <button type="button" class="nav" id="suiv">Suivant →</button>
   </div>
 </div>
 <div class="bulle" id="bulle" role="status"></div>
 
-<script>
-// ---------- Les 5 styles ----------
-const STYLES = [
-  {id:"glace", nom:"Glace",
-   idee:"L'anneau est taillé dans la glace. Il fond doucement pendant que le temps passe, et un reflet de lumière glisse dessus.",
-   logo:'<circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="4.5"/><circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="50 69.1" transform="rotate(-90 16 16)"/><path d="M16 12.2 19.8 16 16 19.8 12.2 16Z" fill="currentColor"/>',
-   icone:{fond:"#04111a", logo:"#8fdcff"},
-   polices:["Syne","Manrope","titre large et froid, comme une lame de glace","texte net, très lisible en petit"],
-   jour:["#e9f0f4","#0b1c26","#0b6e99","#d6e5ee"], nuit:["#04111a","#eef7fb","#8fdcff","#173749"],
-   signature:"L'anneau de glace qui fond, avec son reflet qui glisse (inspiré d'Igloo).",
-   effets:[
-     ["Effet star : l'anneau fond et un reflet de lumière court dessus.","premium 3D, smooth transitions"],
-     ["Les blocs se posent un par un, comme de la buée qui apparaît.","smooth transitions"],
-     ["Au toucher, le bouton s'enfonce un peu, comme une touche en verre.","tactile UI"]],
-   pourquoi:[
-     "Bleu glacier et blanc seulement : le bleu dit le calme et la confiance (cerveau design, partie 5), et une palette courte reste maîtrisée (règle 8).",
-     "Le froid et le vide autour de l'anneau font l'écrin : « le vide est un outil » (règle 3) et ton humeur PREMIUM / ÉCRIN."]},
-  {id:"ecrin", nom:"Écrin",
-   idee:"L'anneau devient une bague posée dans une alcôve de velours, éclairée comme dans une vitrine de joaillier. La pierre avance à mesure que le temps passe.",
-   logo:'<circle cx="16" cy="17" r="10.5" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="3"/><circle cx="16" cy="17" r="10.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="47.5 66" transform="rotate(-90 16 17)"/><path d="M16 2.5 20 6.5 16 10.5 12 6.5Z" fill="currentColor"/>',
-   icone:{fond:"#5c0f1e", logo:"#f3efed"},
-   polices:["Cormorant Garamond","Jost","titre à empattements fins, classique et précieux","texte géométrique et calme"],
-   jour:["#f3efed","#1f0d10","#7d1426","#e8dfdc"], nuit:["#120709","#f7eef0","#e0687c","#3a1c22"],
-   signature:"La bague en platine dans son alcôve de velours bordeaux (inspiré de Cartier).",
-   effets:[
-     ["Effet star : la bague tourne lentement sur elle-même sous un spot qui respire.","product showcase in 3D, premium 3D"],
-     ["Les messages glissent vers le haut, comme un tiroir de bijoutier qui s'ouvre.","smooth transitions"],
-     ["La lumière de l'alcôve suit le doigt ou la souris.","tactile UI"]],
-   pourquoi:[
-     "Bordeaux et platine, pas d'or : le noir et le rouge profond disent le luxe (partie 5), sans le fond sombre + doré que tu n'aimes pas.",
-     "Un seul objet, une niche, une lumière : c'est la leçon de Cartier (ETUDE-REFERENCES) et la règle « une idée forte, pas dix »."]},
-  {id:"disque", nom:"Disque",
-   idee:"L'anneau est un disque qui tourne, comme un CD. Son sillon raccourcit avec le temps ; les fichiers de la salle sont comme les pistes du disque.",
-   logo:'<circle cx="16" cy="16" r="9.5" fill="none" stroke="currentColor" stroke-opacity=".22" stroke-width="9"/><circle cx="16" cy="16" r="9.5" fill="none" stroke="currentColor" stroke-width="9" stroke-dasharray="43 59.7" transform="rotate(-90 16 16)"/>',
-   icone:{fond:"#ebeae5", logo:"#121212"},
-   polices:["Instrument Serif","Inter Tight","grand titre serif de magazine","texte serré et moderne"],
-   jour:["#ebeae5","#121212","#d63d12","#dcdbd5"], nuit:["#0d0d0d","#f1f0eb","#ff6a3d","#2b2b2b"],
-   signature:"Le disque irisé qui tourne au centre de la salle (inspiré des CD d'A24).",
-   effets:[
-     ["Effet star : le disque tourne, son reflet irisé change avec l'angle, et le sillon raccourcit.","product showcase in 3D"],
-     ["Coins droits partout : seul le disque est rond, il attire l'œil.","premium 3D (l'objet en vitrine)"],
-     ["Chaque nouvel envoi arrive en glissant, comme une piste qui commence.","smooth transitions"]],
-   pourquoi:[
-     "Un objet nostalgique rendu beau, comme tu aimes (PROFIL-WEB) ; un seul orange vif sur gris papier : la règle de la distinction (partie 11).",
-     "Grand serif + petite police nette : la typographie de magazine des sites que tu aimes (ingrédient 8), 2 polices seulement (règle 7)."]},
-  {id:"billes", nom:"Billes",
-   idee:"L'anneau est un collier de billes brillantes. Toutes les 3 minutes, une bille tombe. On peut les pousser du doigt.",
-   logo:'<g fill="currentColor"><circle cx="16" cy="4.6" r="2.4"/><circle cx="22.7" cy="6.8" r="2.4"/><circle cx="26.8" cy="12.5" r="2.4"/><circle cx="26.8" cy="19.5" r="2.4"/><circle cx="22.7" cy="25.2" r="2.4"/><circle cx="16" cy="27.4" r="2.4"/><circle cx="9.3" cy="25.2" r="2.4"/><circle cx="16" cy="16" r="3.4"/></g><g fill="currentColor" fill-opacity=".25"><circle cx="5.2" cy="19.5" r="2.4"/><circle cx="5.2" cy="12.5" r="2.4"/><circle cx="9.3" cy="6.8" r="2.4"/></g>',
-   icone:{fond:"#2340ff", logo:"#ffffff"},
-   polices:["Unbounded","DM Sans","titre rond et costaud, joueur","texte doux et très lisible"],
-   jour:["#f4f4f2","#0e0e10","#2340ff","#e6e7ee"], nuit:["#0b0b0d","#f4f4f6","#7387ff","#272730"],
-   signature:"Les billes qui tombent une à une, et qu'on peut pousser (inspiré de Lusion).",
-   effets:[
-     ["Effet star : les billes tombent avec un vrai poids. Touche l'anneau : elles s'écartent puis reviennent.","tactile UI, premium 3D"],
-     ["Les boutons rebondissent un peu quand on les touche.","tactile UI"],
-     ["Le compteur d'invités : une bille de plus à chaque arrivée.","stylized 3D"]],
-   pourquoi:[
-     "Blanc, noir et un seul bleu électrique : la palette de 3 couleurs de Lusion (ETUDE-REFERENCES), un accent pour l'action (règle 8).",
-     "On compte le temps sans lire : 10 billes = 30 minutes. La hiérarchie se voit d'un coup d'œil (règle 4)."]},
-  {id:"planete", nom:"Petite planète",
-   idee:"La salle est une petite planète. L'anneau est son orbite, qui raccourcit avec le temps ; chaque invité est une lune qui tourne autour.",
-   logo:'<circle cx="16" cy="16" r="12.5" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="2.5"/><circle cx="16" cy="16" r="12.5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="56.5 78.5" transform="rotate(-90 16 16)"/><circle cx="16" cy="16" r="6" fill="currentColor"/><circle cx="3.7" cy="18.4" r="2.6" fill="currentColor"/>',
-   icone:{fond:"#16251a", logo:"#ff8a6a"},
-   polices:["Fraunces","Figtree","titre serif doux et chaleureux","texte rond et lisible"],
-   jour:["#e5eee0","#16251a","#e2522e","#d2e1ca"], nuit:["#0e1b15","#eef5ec","#ff8a6a","#24402f"],
-   signature:"La planète vue d'un coup d'œil, avec ses lunes-invités (inspiré de Messenger).",
-   effets:[
-     ["Effet star : la planète tourne, les lunes suivent l'orbite qui raccourcit.","tiny planet, diorama"],
-     ["Le ciel passe du bleu clair (jour) à la nuit étoilée.","stylized 3D"],
-     ["Une nouvelle lune apparaît quand quelqu'un arrive.","smooth transitions"]],
-   pourquoi:[
-     "Vert sauge et corail : couleurs voisines et opposées sur la roue (partie 5), chaleureux comme ton humeur PETIT MONDE COSY.",
-     "La salle devient un petit monde qu'on voit en entier : l'émotion vient de l'idée, pas d'effets en plus (partie 3)."]}
-];
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 
-// ---------- Les scènes (la touche signature de chaque style) ----------
-const C = 2*Math.PI*70; // longueur du grand anneau
-const RESTE = 24/30;
-function arc(r, f, attrs){ const c=2*Math.PI*r; return `<circle cx="100" cy="100" r="${r}" fill="none" stroke-dasharray="${(c*f).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 100 100)" ${attrs}/>`; }
-const SCENES = {
-  glace: () => `<svg class="objet" viewBox="0 0 200 200" aria-hidden="true">
-    <defs><linearGradient id="g-glace" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--glace-a)"/><stop offset="1" stop-color="var(--glace-b)"/></linearGradient></defs>
-    ${arc(70,1,'stroke="var(--glace-b)" stroke-opacity=".18" stroke-width="18"')}
-    ${arc(70,RESTE,'class="anneau-vie" stroke="url(#g-glace)" stroke-width="18" stroke-linecap="round"')}
-    ${arc(70,RESTE,'stroke="#fff" stroke-opacity=".9" stroke-width="3" stroke-linecap="round" class="glint" style="stroke-dasharray:18 422"')}
-    <path d="M100 86 114 100 100 114 86 100Z" fill="url(#g-glace)"/></svg><p class="temps">24 min avant la fermeture</p>`,
-  ecrin: () => `<svg class="objet" viewBox="0 0 200 200" aria-hidden="true">
-    <defs><radialGradient id="g-spot" cx=".5" cy=".42" r=".5"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
-    <linearGradient id="g-metal" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="var(--metal-b)"/><stop offset=".45" stop-color="var(--metal-a)"/><stop offset="1" stop-color="var(--metal-b)"/></linearGradient></defs>
-    <circle class="spot" cx="100" cy="92" r="100" fill="url(#g-spot)"/>
-    <ellipse cx="100" cy="178" rx="60" ry="8" fill="#000" fill-opacity=".25"/>
-    <g class="bague-tourne">
-      ${arc(62,1,'stroke="#fff" stroke-opacity=".12" stroke-width="10"')}
-      ${arc(62,RESTE,'stroke="url(#g-metal)" stroke-width="10" stroke-linecap="round"')}
-      <path d="M100 22 114 38 100 54 86 38Z" fill="url(#g-metal)"/><path d="M100 22 107 38 100 54Z" fill="#fff" fill-opacity=".6"/>
-    </g></svg><p class="temps">24 min avant la fermeture</p>`,
-  disque: () => `<div class="irise" aria-hidden="true"></div><svg class="objet" viewBox="0 0 200 200" aria-hidden="true" style="position:relative">
-    ${arc(60,1,'stroke="var(--texte)" stroke-opacity=".08" stroke-width="40"')}
-    ${arc(60,RESTE,'stroke="var(--accent)" stroke-opacity=".9" stroke-width="6" stroke-linecap="butt"')}
-    <circle cx="100" cy="100" r="22" fill="var(--scene-fond)"/><circle cx="100" cy="100" r="8" fill="var(--fond)"/></svg><p class="temps">24 min avant la fermeture</p>`,
-  billes: () => { let s=''; for(let i=0;i<10;i++){ const a=-Math.PI/2+i*2*Math.PI/10, x=100+68*Math.cos(a), y=100+68*Math.sin(a), vide=i>=8;
-      s+=`<circle class="bille${vide?' partie':''}" data-i="${i}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="13" fill="${vide?'var(--carte2)':'url(#g-bille)'}" style="transform-box:fill-box;transform-origin:center"/>`; }
-    return `<svg class="objet" viewBox="0 0 200 200" aria-hidden="true" style="cursor:pointer">
-    <defs><radialGradient id="g-bille" cx=".35" cy=".3" r=".75"><stop offset="0" stop-color="var(--bille-a)"/><stop offset=".25" stop-color="var(--accent)"/><stop offset="1" stop-color="var(--bille-b)"/></radialGradient></defs>
-    ${s}<circle cx="100" cy="100" r="16" fill="url(#g-bille)"/></svg><p class="temps">8 billes sur 10 · touche l'anneau</p>`; },
-  planete: () => `<svg class="objet" viewBox="0 0 200 200" aria-hidden="true">
-    <defs><radialGradient id="g-sol" cx=".38" cy=".32" r=".8"><stop offset="0" stop-color="var(--sol-a)"/><stop offset="1" stop-color="var(--sol-b)"/></radialGradient></defs>
-    ${arc(76,1,'stroke="var(--scene-doux)" stroke-opacity=".25" stroke-width="3"')}
-    ${arc(76,RESTE,'stroke="var(--accent)" stroke-width="4" stroke-linecap="round"')}
-    <g class="orbite-tourne"><circle cx="100" cy="24" r="8" fill="#fbfdf8"/><circle cx="165.8" cy="138" r="6" fill="#fbfdf8"/><circle cx="34.2" cy="138" r="7" fill="#fbfdf8"/></g>
-    <circle cx="100" cy="100" r="42" fill="url(#g-sol)"/>
-    <path d="M70 92c10-6 22-4 28 2s16 6 22 0" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="5" stroke-linecap="round"/>
-    <circle cx="116" cy="118" r="7" fill="#fff" fill-opacity=".22"/></svg><p class="temps">3 lunes : 3 personnes connectées</p>`
-};
-
-// Un faux QR code (pour la maquette seulement)
-function qr(seed){
-  let x=seed, rnd=()=>((x=(x*9301+49297)%233280)/233280);
-  const n=21; let p='';
-  const coin=(cx,cy)=>{ p+=`M${cx} ${cy}h7v7h-7zM${cx+1} ${cy+1}v5h5v-5zM${cx+2} ${cy+2}h3v3h-3z`; };
-  for(let i=0;i<n;i++) for(let j=0;j<n;j++){ const dansCoin=(i<8&&j<8)||(i<8&&j>12)||(i>12&&j<8); if(!dansCoin && rnd()>.52) p+=`M${j} ${i}h1v1h-1z`; }
-  coin(0,0); coin(14,0); coin(0,14);
-  return `<svg class="qr" viewBox="0 0 21 21" shape-rendering="crispEdges" aria-label="QR code"><path fill="#111" fill-rule="evenodd" d="${p}"/></svg>`;
-}
-
-function anneauEtat(){ return `<svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="15" fill="none" stroke="var(--carte2)" stroke-width="5"/><circle cx="20" cy="20" r="15" fill="none" stroke="var(--accent)" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(94.2*RESTE).toFixed(1)} 94.2" transform="rotate(-90 20 20)"/></svg>`; }
-
-function telephone(s, i){
-  return `<div class="tel"><div class="ecran" data-s="${s.id}" data-mode="jour">
-    <div class="haut"><span class="marque"><svg viewBox="0 0 32 32" aria-hidden="true">${s.logo}</svg>Partage éphémère</span><button type="button" class="fermer" tabindex="-1">Fermer la salle</button></div>
-    <div class="titre-salle">Ta salle</div>
-    <div class="scene">${SCENES[s.id]()}</div>
-    <div class="code-bloc"><div class="code">482 915</div>${qr(17+i*31)}<p class="aide">Les invités scannent ce QR code avec l'appareil photo de leur téléphone.</p></div>
-    <div class="duo"><button type="button" class="btn2" tabindex="-1">Copier le code</button><button type="button" class="btn2" tabindex="-1">Partager le lien</button></div>
-    <div class="etat">${anneauEtat()}<span>3 personnes connectées · Fermeture automatique dans 24 min</span></div>
-    <p class="bandeau">Ne verrouille pas ton écran : la salle se fermerait pour tout le monde.</p>
-    <div class="msg"><div class="qui">Invité 2 <span>14:32</span></div>Le lien pour samedi : resa.fr/7Q2K</div>
-    <div class="msg"><div class="qui">Moi <span>14:33</span></div>
-      <div class="fichier"><div class="vignette">MOV</div><div style="min-width:0"><div class="nom">Vacances-Nice-plage.mov</div><div class="taille">418 Mo</div></div></div>
-      <div class="piste"><i class="barre"></i></div>
-      <div class="ligne-envoi"><span>62 %</span><button type="button" tabindex="-1">Annuler</button></div>
-      <p class="aide" style="margin-top:6px">Garde cet écran ouvert pendant l'envoi.</p></div>
-    <div class="bas"><button type="button" class="plus" tabindex="-1" aria-label="Ajouter un fichier">+</button><span class="champ">Écrire un message…</span><button type="button" class="envoyer" tabindex="-1">Envoyer</button></div>
-  </div></div>`;
-}
-
-function rond(c){ return `<span class="rond" style="background:${c}" title="${c}"></span>`; }
-
-function carte(s, i){
-  return `<article class="carte-style" id="style-${s.id}" aria-labelledby="t-${s.id}">
-    <div class="carte-tete"><span class="num">Style ${i+1} sur 5</span><h2 id="t-${s.id}">${s.nom}</h2><p>${s.idee}</p></div>
-    ${telephone(s, i)}
-    <div class="bloc"><h3>Couleurs</h3><div class="nuancier">
-      <span>Jour</span><span class="ronds">${s.jour.map(rond).join('')}</span>
-      <span>Nuit</span><span class="ronds">${s.nuit.map(rond).join('')}</span></div>
-      <p class="aide-p" style="font-size:13px;color:var(--p-doux);margin-top:6px">Dans l'ordre : fond, texte, accent, couleur douce.</p></div>
-    <div class="bloc polices"><h3>Polices</h3>
-      <div class="exemple-titre" style="font-family:'${s.polices[0]}'">Ta salle 482 915</div>
-      <div class="exemple-texte" style="font-family:'${s.polices[1]}'">Envoie du texte et des fichiers, sans compte.</div>
-      <p style="font-size:13px;color:var(--p-doux);margin-top:6px">${s.polices[0]} : ${s.polices[2]}. ${s.polices[1]} : ${s.polices[3]}.</p></div>
-    <div class="bloc"><h3>Logo et icône</h3><div class="logos">
-      <span class="icone-app" style="background:${s.icone.fond};color:${s.icone.logo}"><svg viewBox="0 0 32 32" aria-label="Icône de l'app">${s.logo}</svg></span>
-      <svg viewBox="0 0 32 32" width="40" height="40" aria-hidden="true">${s.logo}</svg>
-      <svg viewBox="0 0 32 32" width="24" height="24" aria-hidden="true">${s.logo}</svg>
-      <svg viewBox="0 0 32 32" width="16" height="16" aria-hidden="true">${s.logo}</svg></div></div>
-    <div class="bloc"><h3>Touche signature</h3><p>${s.signature}</p></div>
-    <div class="bloc"><h3>Effets (et le mot-clé qu'ils servent)</h3><ul>${s.effets.map(e=>`<li>${e[0]} <span class="pourquoi">(${e[1]})</span></li>`).join('')}</ul></div>
-    <div class="bloc"><h3>Pourquoi ces choix</h3><ul class="pourquoi">${s.pourquoi.map(p=>`<li>${p}</li>`).join('')}</ul></div>
-    <button type="button" class="choisir" data-id="${s.id}" aria-pressed="false">Je choisis ${s.nom}</button>
-  </article>`;
-}
-
-const rail = document.getElementById('rail');
-rail.innerHTML = STYLES.map(carte).join('');
-document.getElementById('onglets').innerHTML = STYLES.map((s,i)=>`<button type="button" class="onglet" data-cible="${s.id}">${i+1}. ${s.nom}</button>`).join('');
-
-// ---------- Jour / nuit (suit l'appareil au départ) ----------
-const prefereNuit = matchMedia('(prefers-color-scheme: dark)');
-function appliquerMode(m){
-  document.querySelectorAll('.ecran').forEach(e=>e.dataset.mode=m);
-  document.querySelectorAll('.modes button').forEach(b=>b.setAttribute('aria-pressed', b.dataset.mode===m));
-}
-appliquerMode(prefereNuit.matches?'nuit':'jour');
-document.querySelectorAll('.modes button').forEach(b=>b.addEventListener('click',()=>appliquerMode(b.dataset.mode)));
-
-// ---------- Onglets : aller au style ----------
-const onglets=[...document.querySelectorAll('.onglet')];
-onglets.forEach(o=>o.addEventListener('click',()=>{
-  const c=document.getElementById('style-'+o.dataset.cible);
-  rail.scrollTo({left:c.offsetLeft-parseFloat(getComputedStyle(rail).scrollPaddingLeft||16), behavior: matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
-}));
-const cartes=[...document.querySelectorAll('.carte-style')];
-// L'onglet allumé = le style le plus à gauche du rail
-function majOnglet(){
-  const g=rail.scrollLeft+parseFloat(getComputedStyle(rail).scrollPaddingLeft||16);
-  const c=cartes.reduce((a,b)=>Math.abs(b.offsetLeft-g)<Math.abs(a.offsetLeft-g)?b:a);
-  onglets.forEach(o=>o.setAttribute('aria-current', o.dataset.cible===c.id.slice(6)));
-}
-rail.addEventListener('scroll',()=>requestAnimationFrame(majOnglet),{passive:true});
-majOnglet();
-
-// ---------- Billes : une bille tombe, et on peut les pousser ----------
 const calme = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const svgBilles = document.querySelector('[data-s="billes"] svg.objet');
-svgBilles.addEventListener('click',()=>{
-  svgBilles.querySelectorAll('.bille:not(.partie)').forEach(b=>{
-    const a=Math.atan2(b.getAttribute('cy')-100,b.getAttribute('cx')-100);
-    b.style.setProperty('--px',(Math.cos(a)*10).toFixed(1)+'px'); b.style.setProperty('--py',(Math.sin(a)*10).toFixed(1)+'px');
-    b.classList.remove('pousse'); void b.getBBox(); b.classList.add('pousse');
-  });
+const DOSSIER = 'choix-3d/';
+
+// ---------- Le moteur 3D : un seul pour toute la page ----------
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+// Lumière du studio (photo HDR de Poly Haven) : donne les reflets à toutes les matières
+const pmrem = new THREE.PMREMGenerator(renderer);
+const envPret = new RGBELoader().loadAsync(DOSSIER + 'studio_small_09_1k.hdr').then(hdr => {
+  const env = pmrem.fromEquirectangular(hdr).texture; hdr.dispose(); pmrem.dispose(); return env;
 });
-if(!calme){
-  setInterval(()=>{
-    const restantes=[...svgBilles.querySelectorAll('.bille:not(.partie)')];
-    if(restantes.length<=3){ // on remet le collier pour la démo
-      svgBilles.querySelectorAll('.bille').forEach((b,i)=>{ b.classList.remove('tombe','partie'); b.setAttribute('fill', i>=8?'var(--carte2)':'url(#g-bille)'); if(i>=8) b.classList.add('partie'); });
-      return;
-    }
-    const b=restantes[restantes.length-1];
-    const fantome=b.cloneNode(); fantome.classList.add('tombe'); b.after(fantome);
-    fantome.addEventListener('animationend',()=>fantome.remove());
-    b.classList.add('partie'); b.setAttribute('fill','var(--carte2)');
-  },3200);
-}
-
-// ---------- Écrin : la lumière suit le doigt ----------
-const sceneEcrin = document.querySelector('[data-s="ecrin"] .scene');
-sceneEcrin.addEventListener('pointermove',ev=>{
-  const r=sceneEcrin.getBoundingClientRect(), spot=sceneEcrin.querySelector('.spot');
-  spot.setAttribute('cx', (ev.clientX-r.left)/r.width*200); spot.setAttribute('cy', (ev.clientY-r.top)/r.height*200);
-});
-
-// ---------- Glace : l'anneau fond doucement (démo en 20 s) ----------
-if(!calme){
-  const arcG=document.querySelector('[data-s="glace"] .anneau-vie'), t0=performance.now();
-  (function boucle(t){
-    const f = RESTE*(1-((t-t0)%20000)/20000*0.75);
-    arcG.setAttribute('stroke-dasharray', `${(C*f).toFixed(1)} ${C.toFixed(1)}`);
-    requestAnimationFrame(boucle);
-  })(t0);
-}
-
-// ---------- Le choix ----------
-let choix=null;
-const resume=document.getElementById('resume');
-document.querySelectorAll('.choisir').forEach(b=>b.addEventListener('click',()=>{
-  choix = choix===b.dataset.id ? null : b.dataset.id;
-  document.querySelectorAll('.choisir').forEach(x=>{ const on=x.dataset.id===choix; x.setAttribute('aria-pressed',on); x.closest('.carte-style').classList.toggle('choisi',on); const s=STYLES.find(y=>y.id===x.dataset.id); x.textContent = on?`${s.nom} est choisi ✓`:`Je choisis ${s.nom}`; });
-  const s=STYLES.find(y=>y.id===choix);
-  resume.textContent = s ? `Ton choix : style ${STYLES.indexOf(s)+1}, ${s.nom}.` : "Aucun style choisi pour l'instant.";
+const chargeur = new THREE.TextureLoader();
+// Les 3 matières photo (Poly Haven), chargées une fois pour toute la page
+const textures = {};
+const texturesPretes = Promise.all(['marble_01_diff_1k.jpg','wood_floor_diff_1k.jpg','plaster_grey_04_diff_1k.jpg'].map(async nom => {
+  const t = await chargeur.loadAsync(DOSSIER + nom); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; textures[nom] = t;
 }));
-const bulle=document.getElementById('bulle');
-function montrer(t){ bulle.textContent=t; bulle.classList.add('vue'); clearTimeout(montrer.t); montrer.t=setTimeout(()=>bulle.classList.remove('vue'),2200); }
-document.getElementById('copier').addEventListener('click',async()=>{
-  const s=STYLES.find(y=>y.id===choix), m=document.getElementById('melange').value.trim();
-  if(!s && !m){ montrer('Choisis d\'abord un style'); return; }
-  const texte = `Mission 19 : je choisis le style ${s?`${STYLES.indexOf(s)+1} « ${s.nom} »`:'(mélange)'}.${m?` Mélange : ${m}`:''}`;
-  try{ await navigator.clipboard.writeText(texte); montrer('Choix copié ✓'); }
-  catch{ const z=document.createElement('textarea'); z.value=texte; document.body.append(z); z.select(); document.execCommand('copy'); z.remove(); montrer('Choix copié ✓'); }
+function texture(nom, rep=1){ const t = textures[nom].clone(); t.repeat.set(rep, rep); return t; }
+
+// ---------- Outils communs ----------
+// L'anneau qui se vide : un tore coupé, qui part du haut et tourne dans le sens des aiguilles d'une montre
+function anneau(R, tube, mat, bouts=true){
+  const g = new THREE.Group();
+  const m = new THREE.Mesh(new THREE.BufferGeometry(), mat); m.rotation.z = Math.PI/2; m.scale.y = -1; g.add(m);
+  const geoBout = new THREE.SphereGeometry(tube, 32, 16);
+  const b1 = new THREE.Mesh(geoBout, mat), b2 = new THREE.Mesh(geoBout, mat);
+  if(bouts) g.add(b1, b2);
+  let avant = -1;
+  g.userData.regler = f => {
+    f = Math.min(1, Math.max(.03, f)); if(Math.abs(f-avant) < .0015) return; avant = f;
+    m.geometry.dispose(); m.geometry = new THREE.TorusGeometry(R, tube, 24, Math.max(24, Math.round(180*f)), f*Math.PI*2);
+    const a = f*Math.PI*2; b1.position.set(0, R, 0); b2.position.set(R*Math.sin(a), R*Math.cos(a), 0);
+  };
+  g.userData.regler(1);
+  return g;
+}
+function piste(R, tube, couleur, opacite){
+  return new THREE.Mesh(new THREE.TorusGeometry(R, tube, 12, 160), new THREE.MeshBasicMaterial({color:couleur, transparent:true, opacity:opacite, depthWrite:false}));
+}
+let texOmbre;
+function ombre(taille, opacite){
+  if(!texOmbre){ const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
+    const d = x.createRadialGradient(64,64,0,64,64,64); d.addColorStop(0,'rgba(0,0,0,1)'); d.addColorStop(.5,'rgba(0,0,0,.45)'); d.addColorStop(1,'rgba(0,0,0,0)');
+    x.fillStyle = d; x.fillRect(0,0,128,128); texOmbre = new THREE.CanvasTexture(c); }
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(taille, taille), new THREE.MeshBasicMaterial({map:texOmbre, transparent:true, opacity:opacite, depthWrite:false}));
+  m.rotation.x = -Math.PI/2; m.position.y = .002; return m;
+}
+function ecranTexte(lignes, fond, encre, police){
+  const c = document.createElement('canvas'); c.width = 512; c.height = 320; const x = c.getContext('2d');
+  x.fillStyle = fond; x.fillRect(0,0,512,320); x.fillStyle = encre; x.textBaseline = 'top';
+  x.font = `600 34px ${police}`; x.fillText(lignes[0], 40, 52);
+  x.font = `600 96px ${police}`; x.fillText(lignes[1], 36, 112);
+  x.font = `400 26px ${police}`; x.globalAlpha = .7; x.fillText(lignes[2], 40, 240);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+
+// ---------- Les 5 styles ----------
+const LOGO_ANNEAU = '<circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="4.5"/><circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="50 69.1" transform="rotate(-90 16 16)"/>';
+const STYLES = [
+{
+  id:'vitrine', nom:'Vitrine', mots:['product showcase in 3D','premium 3D','tactile UI'],
+  idee:"L'anneau est un bijou en platine, posé sur un socle de marbre sous une lumière de studio, avec une émeraude au centre. On le tourne au doigt comme un objet en vitrine. Le platine raccourcit à mesure que le temps passe.",
+  polices:['Cormorant Garamond','Jost'], rayon:'14px', rayonBouton:'999px',
+  ui:{ jour:{fond:'#ebe8e4',carte:'#ffffff',carte2:'#ddd8d1',texte:'#141414',doux:'#5a5650',accent:'#17694f',bouton:'#141414',boutonTexte:'#ffffff',danger:'#c3302b'},
+       nuit:{fond:'#121314',carte:'#1c1d1f',carte2:'#2c2e31',texte:'#f3f1ee',doux:'#b3afa9',accent:'#5fd3a8',bouton:'#f3f1ee',boutonTexte:'#121314',danger:'#d0352f'} },
+  logo: LOGO_ANNEAU + '<path d="M16 12.4 19.6 16 16 19.6 12.4 16Z" fill="currentColor"/>', icone:['#121314','#5fd3a8'],
+  effets:[['Effet star : le bijou tourne lentement sous un spot ; ses reflets viennent d\'une vraie photo de studio.','premium 3D'],
+          ['On le fait tourner au doigt, il se penche vers la souris sur PC.','tactile UI'],
+          ['Arrivée : la caméra s\'approche du socle et l\'anneau se remplit.','smooth transitions']],
+  pourquoi:["Un objet, un socle, une lumière : la leçon de Cartier (ETUDE-REFERENCES) et la règle « une idée forte, pas dix ».",
+            "Platine et émeraude, jamais d'or : le vert parle de vie et de durée (cerveau design, partie 5), une seule couleur d'accent (règle 8)."],
+  camera:[0,1.45,4.6], cible:[0,1.05,0],
+  construire(s){
+    const p = new THREE.Mesh(new THREE.CylinderGeometry(1.15,1.2,.5,96), new THREE.MeshPhysicalMaterial({map:texture('marble_01_diff_1k.jpg',1), color:0xf4f2ef, roughness:.18, clearcoat:1, clearcoatRoughness:.08}));
+    p.position.y = .25; s.add(p, ombre(4.2,.35));
+    const platine = new THREE.MeshPhysicalMaterial({color:0xf2f2f5, metalness:1, roughness:.2});
+    const g = new THREE.Group(); g.position.y = 1.62;
+    const a = anneau(.92, .1, platine); g.add(a, piste(.92,.025,0x888888,.35));
+    const gemme = new THREE.Mesh(new THREE.OctahedronGeometry(.2, 0), new THREE.MeshPhysicalMaterial({color:0x1f9a73, transmission:1, thickness:.5, roughness:.02, ior:1.57, attenuationColor:new THREE.Color(0x0e5b43), attenuationDistance:.4}));
+    gemme.scale.y = 1.35; g.add(gemme); s.add(g);
+    const spot = new THREE.SpotLight(0xffffff, 60, 12, Math.PI/7, .6, 2); spot.position.set(1.5,5,3); spot.target.position.set(0,1.4,0); s.add(spot, spot.target);
+    return { anneau:a, objet:g,
+      mode(m){ s.background = new THREE.Color(m==='nuit'?0x121314:0xebe8e4); s.environmentIntensity = m==='nuit'?.9:1.5; spot.intensity = m==='nuit'?90:40; },
+      maj(t){ g.rotation.y = calme?0:Math.sin(t*.35)*.5; gemme.rotation.y = t*.6; } };
+  }
+},
+{
+  id:'glace', nom:'Glace', mots:['immersive WebGL','premium 3D','smooth transitions'],
+  idee:"L'anneau est taillé dans la glace, une glace qui laisse passer la lumière. Il flotte au-dessus d'un sol lisse pendant que de fins cristaux tombent. Il fond à mesure que le temps passe ; il reste un trait de givre.",
+  polices:['Syne','Manrope'], rayon:'22px', rayonBouton:'999px',
+  ui:{ jour:{fond:'#dde9f0',carte:'#ffffff',carte2:'#cddfe9',texte:'#0b1c26',doux:'#455a66',accent:'#0b6e99',bouton:'#0b1c26',boutonTexte:'#ffffff',danger:'#c3303b'},
+       nuit:{fond:'#06131d',carte:'#0e2230',carte2:'#1a3546',texte:'#eef7fb',doux:'#9fb6c2',accent:'#8fdcff',bouton:'#eef7fb',boutonTexte:'#06131d',danger:'#cf3540'} },
+  logo: LOGO_ANNEAU + '<path d="M16 11.8 18.2 16 16 20.2 13.8 16Z" fill="currentColor"/>', icone:['#06131d','#8fdcff'],
+  effets:[['Effet star : la glace fond doucement ; la lumière la traverse et se tord comme dans un vrai glaçon.','premium 3D'],
+          ['Des cristaux tombent lentement autour de l\'anneau : le monde respire.','immersive WebGL'],
+          ['L\'anneau flotte et se balance, rien ne s\'arrête d\'un coup.','smooth transitions']],
+  pourquoi:["Bleu glacier et blanc seulement : un monde d'une seule couleur, comme Emotion (ETUDE-REFERENCES), le bleu du calme (partie 5).",
+            "Le vide autour de l'anneau fait le luxe : « le vide est un outil » (règle 3), l'humeur PREMIUM / ÉCRIN d'Igloo."],
+  camera:[0,1.6,4.8], cible:[0,1.2,0],
+  construire(s){
+    const sol = new THREE.Mesh(new THREE.CircleGeometry(9,64), new THREE.MeshPhysicalMaterial({color:0xc9dbe5, roughness:.12, clearcoat:1, clearcoatRoughness:.05}));
+    sol.rotation.x = -Math.PI/2; s.add(sol, ombre(3.4,.25));
+    const glace = new THREE.MeshPhysicalMaterial({color:0xffffff, transmission:1, thickness:.8, roughness:.06, ior:1.31, attenuationColor:new THREE.Color(0x6cc0e4), attenuationDistance:1.1, specularIntensity:1, clearcoat:1});
+    // des bandes de lumière derrière l'anneau : la glace les tord, c'est ce qui la rend vivante
+    const panneaux = new THREE.Group();
+    [-1.6,-.5,.7,1.7].forEach((x,i)=>{ const b = new THREE.Mesh(new THREE.PlaneGeometry(.18+(i%2)*.14, 3.2), new THREE.MeshBasicMaterial({color:0xffffff})); b.position.set(x,1.6,-2.6); panneaux.add(b); });
+    s.add(panneaux);
+    const g = new THREE.Group(); g.position.y = 1.35;
+    const a = anneau(1, .2, glace); g.add(a, piste(1,.04,0xffffff,.5));
+    const cristal = new THREE.Mesh(new THREE.OctahedronGeometry(.18,0), glace); g.add(cristal); s.add(g);
+    const n = 260, pos = new Float32Array(n*3); for(let i=0;i<n;i++){ pos[i*3]=(Math.random()-.5)*7; pos[i*3+1]=Math.random()*4; pos[i*3+2]=(Math.random()-.5)*5; }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos,3));
+    const neige = new THREE.Points(geo, new THREE.PointsMaterial({color:0xffffff, size:.035, transparent:true, opacity:.8, depthWrite:false})); s.add(neige);
+    const soleil = new THREE.DirectionalLight(0xdff4ff, 2); soleil.position.set(-3,5,2); s.add(soleil);
+    return { anneau:a, objet:g,
+      mode(m){ const f = m==='nuit'?0x06131d:0xcfe0ea; s.background = new THREE.Color(f); s.fog = new THREE.Fog(f, 5, 11);
+        sol.material.color.set(m==='nuit'?0x0d2433:0xc9dbe5); s.environmentIntensity = m==='nuit'?.8:1.1; neige.material.color.set(m==='nuit'?0x9fe3ff:0xffffff);
+        panneaux.children.forEach(b=>b.material.color.set(m==='nuit'?0x6fd0ff:0x5a8aa3)); },
+      maj(t, dt){ if(calme) return; g.position.y = 1.35 + Math.sin(t*.8)*.06; g.rotation.y = Math.sin(t*.25)*.35; cristal.rotation.y = t*.5;
+        for(let i=0;i<n;i++){ pos[i*3+1] -= dt*.18; if(pos[i*3+1] < 0) pos[i*3+1] = 4; } geo.attributes.position.needsUpdate = true; } };
+  }
+},
+{
+  id:'diorama', nom:'Diorama', mots:['isometric room','diorama (haut de gamme)','tactile UI'],
+  idee:"La salle devient une vraie petite pièce vue en biais : parquet, murs en plâtre, un bureau avec l'ordinateur et le téléphone qui s'échangent des fichiers. Au mur, l'anneau lumineux montre le temps qui reste. La nuit, la lampe s'allume.",
+  polices:['Fraunces','Figtree'], rayon:'18px', rayonBouton:'999px',
+  ui:{ jour:{fond:'#e7e3dc',carte:'#ffffff',carte2:'#d9d3c9',texte:'#1d1a16',doux:'#5c564d',accent:'#2f6d8f',bouton:'#1d1a16',boutonTexte:'#ffffff',danger:'#c2302a'},
+       nuit:{fond:'#141820',carte:'#1e232d',carte2:'#2e3542',texte:'#f2efe9',doux:'#b1ada6',accent:'#8cc9ec',bouton:'#f2efe9',boutonTexte:'#141820',danger:'#cf352f'} },
+  logo: LOGO_ANNEAU + '<rect x="12.5" y="12.5" width="7" height="7" rx="1.5" fill="currentColor"/>', icone:['#141820','#8cc9ec'],
+  effets:[['Effet star : la pièce passe du jour à la nuit ; la lampe s\'allume et l\'anneau brille au mur.','diorama (haut de gamme)'],
+          ['On tourne la pièce au doigt, sans jamais voir derrière les murs.','tactile UI'],
+          ['L\'écran de l\'ordinateur affiche le vrai code de la salle.','isometric room']],
+  pourquoi:["Un petit monde complet vu d'un coup d'œil, comme My Room in 3D (ETUDE-REFERENCES) ; contraste chaud (lampe) et froid (fenêtre).",
+            "Vraies matières (parquet, plâtre de Poly Haven) : la finition de grand studio de tes 4 règles d'or, pas un rendu « jouet »."],
+  camera:[6.2,5.2,6.2], cible:[0,1.1,0], fov:24, angles:{az:[.15,1.42], polar:[.55,1.2]},
+  construire(s){
+    const bois = new THREE.MeshStandardMaterial({map:texture('wood_floor_diff_1k.jpg',2), roughness:.55});
+    const platre = new THREE.MeshStandardMaterial({map:texture('plaster_grey_04_diff_1k.jpg',1.5), color:0xf3eee6, roughness:.95});
+    const sol = new THREE.Mesh(new RoundedBoxGeometry(4,.24,4,3,.04), bois); sol.position.y = -.12;
+    const murFond = new THREE.Mesh(new THREE.BoxGeometry(4,3,.18), platre); murFond.position.set(0,1.5,-1.91);
+    const murGauche = new THREE.Mesh(new THREE.BoxGeometry(.18,3,4), platre); murGauche.position.set(-1.91,1.5,0);
+    s.add(sol, murFond, murGauche);
+    // fenêtre
+    const vitre = new THREE.Mesh(new THREE.PlaneGeometry(1.3,1.5), new THREE.MeshBasicMaterial({color:0xcfe8ff})); vitre.rotation.y = Math.PI/2; vitre.position.set(-1.81,1.7,.4);
+    const cadreM = new THREE.MeshStandardMaterial({color:0xf7f5f0, roughness:.6});
+    const cadre = new THREE.Group();
+    [[1.42,.07,0,.78],[1.42,.07,0,-.78],[.07,1.6,-.68,0],[.07,1.6,.68,0],[.05,1.5,0,0]].forEach(([l,h,z,y])=>{ const b = new THREE.Mesh(new THREE.BoxGeometry(.06,h,l), cadreM); b.position.set(-1.79,1.7+y,.4+z); cadre.add(b); });
+    s.add(vitre, cadre);
+    // tapis
+    const tapis = new THREE.Mesh(new THREE.CylinderGeometry(1.15,1.15,.02,64), new THREE.MeshStandardMaterial({color:0x9a8d7d, roughness:1})); tapis.position.set(.3,.01,.4); s.add(tapis);
+    // bureau
+    const meuble = new THREE.MeshStandardMaterial({map:texture('wood_floor_diff_1k.jpg',.6), color:0xe8d9c4, roughness:.45});
+    const plateau = new THREE.Mesh(new RoundedBoxGeometry(1.7,.07,.75,3,.03), meuble); plateau.position.set(.35,.86,-1.35);
+    s.add(plateau);
+    [[-.45,-1.03],[1.15,-1.03],[-.45,-1.67],[1.15,-1.67]].forEach(([x,z])=>{ const pied = new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.84,12), new THREE.MeshStandardMaterial({color:0x2a2a2a, roughness:.4, metalness:.6})); pied.position.set(x,.42,z); s.add(pied); });
+    // ordinateur, avec le code de la salle à l'écran
+    const alu = new THREE.MeshStandardMaterial({color:0xc9cbcf, metalness:.9, roughness:.3});
+    const base = new THREE.Mesh(new RoundedBoxGeometry(.66,.025,.44,2,.01), alu); base.position.set(.25,.91,-1.3);
+    const ecranMat = new THREE.MeshBasicMaterial({map:ecranTexte(['Ta salle','482 915','3 personnes connectées'],'#f7f5f0','#1d1a16','Figtree, sans-serif')});
+    const ecran = new THREE.Group(); ecran.position.set(.25,.92,-1.52); ecran.rotation.x = -.22;
+    const dos = new THREE.Mesh(new RoundedBoxGeometry(.66,.42,.02,2,.008), alu); dos.position.y = .21;
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(.6,.37), ecranMat); face.position.set(0,.21,.012);
+    ecran.add(dos, face); s.add(base, ecran);
+    // téléphone
+    const tel = new THREE.Mesh(new RoundedBoxGeometry(.15,.012,.3,2,.02), new THREE.MeshStandardMaterial({color:0x1a1a1a, roughness:.25, metalness:.3})); tel.position.set(.88,.905,-1.2); tel.rotation.y = -.3;
+    const telEcran = new THREE.Mesh(new THREE.PlaneGeometry(.13,.27), new THREE.MeshBasicMaterial({color:0x8cc9ec})); telEcran.rotation.x = -Math.PI/2; telEcran.position.set(0,.007,0); tel.add(telEcran); s.add(tel);
+    // plante en pot céramique
+    const pot = new THREE.Mesh(new THREE.CylinderGeometry(.17,.13,.34,32), new THREE.MeshPhysicalMaterial({color:0xf2f0ec, roughness:.3, clearcoat:.6})); pot.position.set(-1.4,.17,-1.35); s.add(pot);
+    const feuille = new THREE.MeshStandardMaterial({color:0x3f6b45, roughness:.6});
+    for(let i=0;i<9;i++){ const f = new THREE.Mesh(new THREE.SphereGeometry(.1,20,12), feuille); const a = i/9*Math.PI*2; f.scale.set(.55,1.9,.25);
+      f.position.set(-1.4+Math.cos(a)*.13, .55+(i%3)*.12, -1.35+Math.sin(a)*.13); f.rotation.set(Math.sin(a)*.5,a,Math.cos(a)*.5); s.add(f); }
+    // lampe sur pied
+    const metal = new THREE.MeshStandardMaterial({color:0x222222, metalness:.7, roughness:.35});
+    const tige = new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,1.7,12), metal); tige.position.set(1.55,.85,-.2);
+    const socle = new THREE.Mesh(new THREE.CylinderGeometry(.16,.18,.04,32), metal); socle.position.set(1.55,.02,-.2);
+    const abatJourMat = new THREE.MeshStandardMaterial({color:0xfff3e0, emissive:0xffc98a, emissiveIntensity:0, roughness:.8});
+    const abatJour = new THREE.Mesh(new THREE.CylinderGeometry(.14,.24,.26,32,1,true), abatJourMat); abatJour.position.set(1.55,1.78,-.2);
+    const ampoule = new THREE.PointLight(0xffc98a, 0, 6, 1.6); ampoule.position.set(1.55,1.65,-.2);
+    s.add(tige, socle, abatJour, ampoule);
+    // l'anneau lumineux au mur
+    const neon = new THREE.MeshStandardMaterial({color:0xffffff, emissive:0x8cc9ec, emissiveIntensity:.6, roughness:.3});
+    const g = new THREE.Group(); g.position.set(.35,2.05,-1.8);
+    const a = anneau(.5, .045, neon); g.add(a, piste(.5,.012,0x555555,.35)); s.add(g);
+    const soleil = new THREE.DirectionalLight(0xfff4e6, 2.2); soleil.position.set(-6,4,1.5); s.add(soleil);
+    const ciel = new THREE.HemisphereLight(0xdfeeff, 0x8a7a66, .5); s.add(ciel);
+    return { anneau:a, objet:null,
+      mode(m){ const n = m==='nuit';
+        s.background = new THREE.Color(n?0x141820:0xe7e3dc); s.environmentIntensity = n?.06:.55;
+        vitre.material.color.set(n?0x1b2b44:0xcfe8ff); soleil.intensity = n?.12:2.4; ciel.intensity = n?.04:.5;
+        ampoule.intensity = n?7:0; abatJourMat.emissiveIntensity = n?1.4:0; neon.emissiveIntensity = n?2.2:.5; },
+      maj(){} };
+  }
+},
+{
+  id:'planete', nom:'Petite planète', mots:['tiny planet','diorama (haut de gamme)','stylized 3D'],
+  idee:"La salle est une petite planète avec ses collines, ses arbres et sa mer. L'anneau est l'anneau de la planète, en nacre ; il raccourcit avec le temps. Chaque invité est une lune qui tourne autour.",
+  polices:['Unbounded','DM Sans'], rayon:'26px', rayonBouton:'999px',
+  ui:{ jour:{fond:'#d7e8f2',carte:'#ffffff',carte2:'#c4dae6',texte:'#122230',doux:'#475b69',accent:'#d2492a',bouton:'#122230',boutonTexte:'#ffffff',danger:'#c2302a'},
+       nuit:{fond:'#0a1430',carte:'#131f3f',carte2:'#223156',texte:'#eef2fb',doux:'#a9b4cc',accent:'#ff8a6a',bouton:'#eef2fb',boutonTexte:'#0a1430',danger:'#d3362f'} },
+  logo:'<circle cx="16" cy="16" r="6.5" fill="currentColor"/><ellipse cx="16" cy="16" rx="14" ry="5" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="2.4" transform="rotate(-20 16 16)"/><path d="M3.1 19.5A14 5 -20 0 1 25.5 6.6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>', icone:['#0a1430','#ff8a6a'],
+  effets:[['Effet star : la planète tourne ; son anneau de nacre change de couleur avec l\'angle et raccourcit.','tiny planet'],
+          ['Les lunes-invités tournent autour ; une de plus à chaque arrivée.','stylized 3D'],
+          ['Ciel bleu le jour, nuit étoilée la nuit.','diorama (haut de gamme)']],
+  pourquoi:["Le monde entier visible d'un coup d'œil, qu'on fait tourner comme un globe : la leçon de Messenger (ETUDE-REFERENCES).",
+            "Formes douces et lisses, pas de cubes : ton humeur PETIT MONDE COSY, en version haut de gamme (PROFIL-WEB)."],
+  camera:[0,1.9,6.6], cible:[0,0,0],
+  construire(s){
+    const monde = new THREE.Group(); s.add(monde);
+    const geo = new THREE.IcosahedronGeometry(1.1, 20); const p = geo.attributes.position, v = new THREE.Vector3(), couleurs = [];
+    const herbe = new THREE.Color(0x7dba62), herbe2 = new THREE.Color(0x3f8a4c), sable = new THREE.Color(0xeadbb2);
+    const hauteur = v => Math.sin(v.x*3.1+1)*Math.sin(v.y*2.7+.5)*Math.cos(v.z*3.3) + .45*Math.sin(v.x*5+v.z*4);
+    const terres = [];
+    for(let i=0;i<p.count;i++){ v.fromBufferAttribute(p,i).normalize(); const h = hauteur(v);
+      // terre au-dessus de la mer, en collines douces ; ailleurs, sous l'eau
+      const r = h > 0 ? 1.105 + Math.min(h,.8)*.07 : 1.07; p.setXYZ(i, v.x*r, v.y*r, v.z*r);
+      const c = h<.07 ? sable : herbe.clone().lerp(herbe2, Math.min(1,h*1.3)); couleurs.push(c.r,c.g,c.b);
+      if(h>.3 && i%5===0) terres.push(v.clone().multiplyScalar(r)); }
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(couleurs,3)); geo.computeVertexNormals();
+    monde.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({vertexColors:true, roughness:.85})));
+    const mer = new THREE.Mesh(new THREE.SphereGeometry(1.1,64,48), new THREE.MeshPhysicalMaterial({color:0x2b86b0, roughness:.12, clearcoat:1, clearcoatRoughness:.1}));
+    monde.add(mer);
+    const tronc = new THREE.MeshStandardMaterial({color:0x7a5a43, roughness:.8}), cime = new THREE.MeshStandardMaterial({color:0x2f6b3c, roughness:.65});
+    const haut = new THREE.Vector3(0,1,0);
+    terres.slice(0,26).forEach((pt,i)=>{ const arbre = new THREE.Group(); const t = new THREE.Mesh(new THREE.CylinderGeometry(.012,.018,.09,8), tronc); t.position.y = .045;
+      const c = new THREE.Mesh(new THREE.SphereGeometry(.05,20,14), cime); c.scale.set(1,1.5,1); c.position.y = .12; arbre.add(t,c);
+      const k = .8 + (i%4)*.15; arbre.scale.setScalar(k); arbre.position.copy(pt); arbre.quaternion.setFromUnitVectors(haut, pt.clone().normalize()); monde.add(arbre); });
+    // l'anneau de la planète, en nacre
+    const nacre = new THREE.MeshPhysicalMaterial({color:0xf6f1ea, roughness:.18, metalness:.2, iridescence:1, iridescenceIOR:1.6, iridescenceThicknessRange:[200,600], clearcoat:1});
+    const g = new THREE.Group(); g.rotation.set(Math.PI/2 - .42, 0, .3);
+    const a = anneau(1.85, .07, nacre); g.add(a, piste(1.85,.02,0xffffff,.3)); s.add(g);
+    // les lunes = les invités
+    const orbite = new THREE.Group(); orbite.rotation.set(.4,0,-.25); s.add(orbite);
+    const luneMat = new THREE.MeshStandardMaterial({color:0xf2efe8, roughness:.9});
+    [0,2.1,4.2].forEach((a,i)=>{ const l = new THREE.Mesh(new THREE.SphereGeometry(.1 - i*.012,32,24), luneMat); l.position.set(Math.cos(a)*2.45,0,Math.sin(a)*2.45); orbite.add(l); });
+    // étoiles (la nuit)
+    const n = 500, pos = new Float32Array(n*3); for(let i=0;i<n;i++){ v.randomDirection().multiplyScalar(14+Math.random()*6); pos.set([v.x,v.y,v.z], i*3); }
+    const eg = new THREE.BufferGeometry(); eg.setAttribute('position', new THREE.BufferAttribute(pos,3));
+    const etoiles = new THREE.Points(eg, new THREE.PointsMaterial({color:0xffffff, size:.06, transparent:true, opacity:.85})); s.add(etoiles);
+    const soleil = new THREE.DirectionalLight(0xfff1dc, 2.6); soleil.position.set(4,3,3); s.add(soleil);
+    return { anneau:a, objet:monde,
+      mode(m){ const nuit = m==='nuit'; s.background = new THREE.Color(nuit?0x0a1430:0xbcdcee); etoiles.visible = nuit; s.environmentIntensity = nuit?.35:.8; soleil.color.set(nuit?0xc9d6ff:0xfff1dc); soleil.intensity = nuit?1.6:2.6; },
+      maj(t){ if(calme) return; monde.rotation.y = t*.12; orbite.rotation.y = t*.35; g.rotation.z = .3 + Math.sin(t*.2)*.04; } };
+  }
+},
+{
+  id:'billes', nom:'Billes', mots:['tactile UI','premium 3D','product showcase in 3D'],
+  idee:"L'anneau est un collier de 10 billes brillantes : 10 billes, c'est 30 minutes. Quand le temps passe, une bille tombe, rebondit et roule. Passe le doigt ou la souris dessus : les billes s'écartent, puis reviennent à leur place.",
+  polices:['Instrument Serif','Inter Tight'], rayon:'0px', rayonBouton:'0px',
+  ui:{ jour:{fond:'#f1f1ef',carte:'#ffffff',carte2:'#e3e4ea',texte:'#0e0e10',doux:'#5b5b63',accent:'#2340ff',bouton:'#2340ff',boutonTexte:'#ffffff',danger:'#cc2f2e'},
+       nuit:{fond:'#0d0d10',carte:'#18181c',carte2:'#2a2a32',texte:'#f4f4f6',doux:'#a6a6af',accent:'#7387ff',bouton:'#7387ff',boutonTexte:'#0d0d10',danger:'#cf3130'} },
+  logo:'<g fill="currentColor"><circle cx="16" cy="4.6" r="2.4"/><circle cx="22.7" cy="6.8" r="2.4"/><circle cx="26.8" cy="12.5" r="2.4"/><circle cx="26.8" cy="19.5" r="2.4"/><circle cx="22.7" cy="25.2" r="2.4"/><circle cx="16" cy="27.4" r="2.4"/><circle cx="9.3" cy="25.2" r="2.4"/><circle cx="16" cy="16" r="3.4"/></g><g fill="currentColor" fill-opacity=".25"><circle cx="5.2" cy="19.5" r="2.4"/><circle cx="5.2" cy="12.5" r="2.4"/><circle cx="9.3" cy="6.8" r="2.4"/></g>', icone:['#2340ff','#ffffff'],
+  effets:[['Effet star : les billes ont un vrai poids. Elles tombent, rebondissent, et s\'écartent sous le doigt.','tactile UI'],
+          ['Céramique blanche, laque noire et un seul bleu, avec les reflets du studio.','premium 3D'],
+          ['On compte le temps sans lire : une bille = 3 minutes.','product showcase in 3D']],
+  pourquoi:["« La physique rend tactile » : la leçon de Lusion (ETUDE-REFERENCES), avec sa palette de 3 couleurs (règle 8).",
+            "Le temps se voit d'un coup d'œil (règle 4 : la hiérarchie, c'est le GPS de l'œil)."],
+  camera:[0,1.5,5.2], cible:[0,1.35,0],
+  construire(s){
+    const sol = new THREE.Mesh(new THREE.CircleGeometry(10,64), new THREE.MeshStandardMaterial({color:0xf1f1ef, roughness:.9})); sol.rotation.x = -Math.PI/2; s.add(sol);
+    const mats = [new THREE.MeshPhysicalMaterial({color:0xf6f6f4, roughness:.3, clearcoat:1, clearcoatRoughness:.08}),
+                  new THREE.MeshPhysicalMaterial({color:0x111114, roughness:.25, clearcoat:1, clearcoatRoughness:.05}),
+                  new THREE.MeshPhysicalMaterial({color:0x2340ff, roughness:.2, clearcoat:1, clearcoatRoughness:.05})];
+    const R = 1.1, H = 1.45, r = .2, geoB = new THREE.SphereGeometry(r, 48, 32), billes = [];
+    for(let i=0;i<10;i++){ const a = i/10*Math.PI*2; const m = new THREE.Mesh(geoB, i===0?mats[2]:mats[i%2]);
+      const maison = new THREE.Vector3(Math.sin(a)*R, H+Math.cos(a)*R, 0); m.position.copy(maison);
+      const o = ombre(.6,.22); s.add(m, o); billes.push({m, o, maison, v:new THREE.Vector3(), partie:false, temps:0}); }
+    const coeur = new THREE.Mesh(new THREE.SphereGeometry(.3,48,32), mats[2]); coeur.position.y = H; s.add(coeur, ombre(1.2,.18));
+    const cle = new THREE.DirectionalLight(0xffffff, 1.6); cle.position.set(2,5,4); s.add(cle);
+    // le doigt / la souris pousse les billes
+    const plan = new THREE.Plane(new THREE.Vector3(0,0,1), 0), doigt = new THREE.Vector3(99,99,0); let doigtActif = false;
+    const faux = { userData:{ regler(f){ const n = Math.round(f*10);
+      billes.forEach((b,i)=>{ const doitPartir = i >= n;
+        if(doitPartir && !b.partie){ b.partie = true; b.temps = 0; b.v.set((Math.random()-.5)*.8, .5, (Math.random()*.6)+.2); }
+        if(!doitPartir && b.partie){ b.partie = false; b.m.material.opacity = 1; b.m.visible = true; b.m.position.set(b.maison.x, b.maison.y+3, 0); b.v.set(0,0,0); } }); } } };
+    return { anneau:faux, objet:null, survol(rayon, actif){ doigtActif = actif; if(actif) rayon.ray.intersectPlane(plan, doigt); },
+      mode(m){ const n = m==='nuit'; s.background = new THREE.Color(n?0x0d0d10:0xf1f1ef); sol.material.color.set(n?0x0d0d10:0xf1f1ef); s.environmentIntensity = n?.5:1; cle.intensity = n?2.2:1.6; },
+      maj(t, dt){ dt = Math.min(dt, .033);
+        billes.forEach(b=>{
+          if(b.partie){ b.temps += dt; b.v.y -= 9.8*dt*.6; b.m.position.addScaledVector(b.v, dt);
+            if(b.m.position.y < r){ b.m.position.y = r; b.v.y *= -.45; b.v.x *= .85; b.v.z *= .85; }
+            b.m.visible = b.temps < 3.2;
+          } else {
+            const ressort = b.maison.clone().sub(b.m.position).multiplyScalar(calme?60:26);
+            if(doigtActif && !calme){ const d = b.m.position.clone().sub(doigt); d.z = 0; const l = d.length(); if(l < .75) ressort.add(d.normalize().multiplyScalar((.75-l)*90)); }
+            b.v.addScaledVector(ressort, dt).multiplyScalar(Math.pow(.02, dt)); b.m.position.addScaledVector(b.v, dt);
+          }
+          b.o.position.set(b.m.position.x, .003, b.m.position.z); const h = b.m.position.y; b.o.material.opacity = b.m.visible ? .28/(1+h*.8) : 0; b.o.scale.setScalar(.6+h*.35);
+        });
+        coeur.rotation.y = t*.3; } };
+  }
+}];
+
+// ---------- La scène affichée ----------
+const camera = new THREE.PerspectiveCamera(35, 1, .1, 100);
+const controles = new OrbitControls(camera, canvas);
+controles.enableDamping = true; controles.enablePan = false; controles.enableZoom = false; controles.rotateSpeed = .7;
+let actuel = null, index = 0, mode = matchMedia('(prefers-color-scheme: dark)').matches ? 'nuit' : 'jour';
+let reste = .8; // part des 30 minutes qui reste (24 min)
+
+function vider(scene){
+  scene.traverse(o=>{ if(o.geometry) o.geometry.dispose(); const m = o.material; if(m){ (Array.isArray(m)?m:[m]).forEach(x=>{ if(x.map && !Object.values(textures).includes(x.map)) x.map.dispose(); x.dispose(); }); } });
+}
+
+async function montrer(i, dir=1){
+  const st = STYLES[i]; index = i;
+  const monde = document.getElementById('monde');
+  if(actuel && !calme) await gsap.to([canvas], {autoAlpha:0, x:-40*dir, duration:.35, ease:'power2.in'});
+  if(actuel){ vider(actuel.scene); }
+  const scene = new THREE.Scene(); scene.environment = await envPret; await texturesPretes;
+  const s = st.construire(scene);
+  actuel = {st, scene, ...s};
+  camera.fov = st.fov || 35; camera.updateProjectionMatrix();
+  controles.target.set(...st.cible);
+  const az = st.angles?.az, po = st.angles?.polar;
+  controles.minAzimuthAngle = az ? az[0] : -Infinity; controles.maxAzimuthAngle = az ? az[1] : Infinity;
+  controles.minPolarAngle = po ? po[0] : .35; controles.maxPolarAngle = po ? po[1] : 1.5;
+  controles.autoRotate = false;
+  // écran étroit (iPhone debout) : la caméra recule pour que rien ne soit coupé
+  const cible = new THREE.Vector3(...st.cible), aspect = canvas.clientWidth / canvas.clientHeight;
+  const fin = new THREE.Vector3(...st.camera).sub(cible).multiplyScalar(Math.pow(Math.max(1, 1.15/aspect), .85)).add(cible);
+  camera.aspect = aspect; camera.updateProjectionMatrix();
+  appliquerMode();
+  majTextes();
+  // prépare les matières et dessine une première image, encore invisible : pas d'à-coup à l'arrivée
+  await renderer.compileAsync(scene, camera); s.anneau.userData.regler(reste); renderer.render(scene, camera);
+  document.getElementById('chargement').hidden = true;
+  if(calme){ camera.position.copy(fin); controles.update(); s.anneau.userData.regler(reste); gsap.set(canvas,{autoAlpha:1,x:0}); return; }
+  // arrivée : la caméra s'approche et l'anneau se remplit jusqu'au temps qui reste
+  const depart = fin.clone().multiplyScalar(1.6).add(new THREE.Vector3(1.5*dir,.6,0));
+  camera.position.copy(depart); controles.update();
+  gsap.fromTo(canvas, {autoAlpha:0, x:40*dir}, {autoAlpha:1, x:0, duration:.5, ease:'power2.out'});
+  gsap.to(camera.position, {x:fin.x, y:fin.y, z:fin.z, duration:1.6, ease:'power3.out'});
+  const prog = {f:0}; gsap.to(prog, {f:reste, duration:1.6, ease:'power2.out', onUpdate:()=>s.anneau.userData.regler(prog.f)});
+}
+
+// ---------- Interface : textes, couleurs, jour / nuit ----------
+function appliquerMode(){
+  const st = STYLES[index], c = st.ui[mode], r = document.documentElement.style;
+  r.setProperty('--fond',c.fond); r.setProperty('--carte',c.carte); r.setProperty('--carte2',c.carte2); r.setProperty('--texte',c.texte); r.setProperty('--doux',c.doux);
+  r.setProperty('--accent',c.accent); r.setProperty('--bouton',c.bouton); r.setProperty('--bouton-texte',c.boutonTexte); r.setProperty('--danger',c.danger);
+  r.setProperty('--police-titre', `"${st.polices[0]}", serif`); r.setProperty('--police-texte', `"${st.polices[1]}", sans-serif`);
+  r.setProperty('--rayon', st.rayon); r.setProperty('--rayon-bouton', st.rayonBouton);
+  if(actuel) actuel.mode(mode);
+  document.querySelectorAll('.modes button').forEach(b=>b.setAttribute('aria-pressed', b.dataset.mode===mode));
+}
+function majTextes(){
+  const st = STYLES[index];
+  document.getElementById('num').textContent = `Style ${index+1} sur 5`;
+  document.getElementById('nom').textContent = st.nom;
+  document.getElementById('mots').innerHTML = st.mots.map(m=>`<span>${m}</span>`).join('');
+  document.getElementById('idee').textContent = st.idee;
+  const rond = c => `<i style="background:${c}" title="${c}"></i>`;
+  const j = st.ui.jour, n = st.ui.nuit;
+  document.getElementById('details').innerHTML = `
+    <div><h3>Couleurs (fond, texte, accent, couleur douce)</h3>
+      <p class="ronds">Jour ${[j.fond,j.texte,j.accent,j.carte2].map(rond).join('')}</p>
+      <p class="ronds" style="margin-top:6px">Nuit ${[n.fond,n.texte,n.accent,n.carte2].map(rond).join('')}</p></div>
+    <div><h3>Polices</h3><p><span style="font-family:'${st.polices[0]}';font-size:24px">${st.polices[0]}</span> pour les titres et le code, <span style="font-family:'${st.polices[1]}'">${st.polices[1]}</span> pour le texte.</p></div>
+    <div><h3>Logo et icône d'app</h3><div class="logos"><span class="icone" style="background:${st.icone[0]};color:${st.icone[1]}"><svg viewBox="0 0 32 32" aria-label="Icône">${st.logo}</svg></span>
+      <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden="true">${st.logo}</svg><svg viewBox="0 0 32 32" width="16" height="16" aria-hidden="true">${st.logo}</svg></div></div>
+    <div><h3>Effets (et le mot-clé qu'ils servent)</h3><ul>${st.effets.map(e=>`<li>${e[0]} <span style="color:var(--doux)">(${e[1]})</span></li>`).join('')}</ul></div>
+    <div><h3>Pourquoi ces choix</h3><ul style="color:var(--doux)">${st.pourquoi.map(p=>`<li>${p}</li>`).join('')}</ul></div>`;
+  document.getElementById('points').innerHTML = STYLES.map((_,i)=>`<i class="${i===index?'on':''}"></i>`).join('');
+  document.getElementById('suiv').textContent = index===4 ? 'Revoir le 1 →' : 'Suivant →';
+  majChoix();
+}
+
+// ---------- Le temps qui passe (démo : 24 min → 4 min en 50 s, puis ça recommence) ----------
+function majTemps(){
+  const min = Math.max(1, Math.round(reste*30));
+  document.getElementById('etat').textContent = `3 personnes connectées · Fermeture automatique dans ${min} min`;
+  document.getElementById('mini-anneau').setAttribute('stroke-dasharray', `${(94.2*reste).toFixed(1)} 94.2`);
+}
+
+// ---------- Toucher la scène ----------
+const rayon = new THREE.Raycaster(), souris = new THREE.Vector2(); let dedans = false;
+canvas.addEventListener('pointermove', e=>{ const r = canvas.getBoundingClientRect(); souris.set((e.clientX-r.left)/r.width*2-1, -(e.clientY-r.top)/r.height*2+1); dedans = true; });
+canvas.addEventListener('pointerleave', ()=>{ dedans = false; });
+canvas.addEventListener('pointerdown', ()=>{ document.getElementById('indice').style.opacity = 0; });
+
+// ---------- La boucle d'animation ----------
+const horloge = new THREE.Clock(); let enVue = true, remplit = false;
+new IntersectionObserver(e=>{ enVue = e[0].isIntersecting; }).observe(canvas);
+function taille(){ const w = canvas.clientWidth, h = canvas.clientHeight; if(canvas.width !== Math.floor(w*renderer.getPixelRatio()) || canvas.height !== Math.floor(h*renderer.getPixelRatio())){ renderer.setSize(w, h, false); camera.aspect = w/h; camera.updateProjectionMatrix(); } }
+renderer.setAnimationLoop(()=>{
+  const dt = horloge.getDelta(), t = horloge.elapsedTime;
+  if(!actuel || !enVue || document.hidden) return;
+  taille();
+  if(!calme){
+    if(!remplit) reste -= dt*(.65/50);
+    if(reste < .14 && !remplit){ remplit = true; const r = {f:reste};
+      gsap.to(r, {f:.8, duration:1.4, ease:'power2.inOut', onUpdate:()=>{ reste = r.f; }, onComplete:()=>{ remplit = false; }}); }
+    actuel.anneau.userData.regler(reste); majTemps();
+  }
+  // survol sur PC : l'objet se penche vers la souris
+  if(actuel.objet && !calme){ actuel.objet.rotation.x += ((dedans? -souris.y*.25 : 0) - actuel.objet.rotation.x)*.06; }
+  if(actuel.survol){ rayon.setFromCamera(souris, camera); actuel.survol(rayon, dedans); }
+  actuel.maj(t, dt);
+  controles.update();
+  renderer.render(actuel.scene, camera);
 });
+
+// ---------- Boutons ----------
+document.querySelectorAll('.modes button').forEach(b=>b.addEventListener('click',()=>{ mode = b.dataset.mode; appliquerMode(); }));
+let occupe = false;
+async function aller(d){ if(occupe) return; occupe = true; await montrer((index+d+5)%5, d); occupe = false; }
+document.getElementById('suiv').addEventListener('click',()=>aller(1));
+document.getElementById('prec').addEventListener('click',()=>aller(-1));
+// glisser horizontalement sur l'aperçu de la salle = style suivant / précédent
+let x0 = null; const salle = document.getElementById('salle');
+salle.addEventListener('touchstart', e=>{ x0 = e.touches[0].clientX; }, {passive:true});
+salle.addEventListener('touchend', e=>{ if(x0===null) return; const d = e.changedTouches[0].clientX - x0; if(Math.abs(d) > 60) aller(d<0?1:-1); x0 = null; });
+addEventListener('keydown', e=>{ if(e.target.tagName==='INPUT') return; if(e.key==='ArrowRight') aller(1); if(e.key==='ArrowLeft') aller(-1); });
+
+let choix = null;
+function majChoix(){
+  const st = STYLES[index], b = document.getElementById('choisir'), on = choix===st.id;
+  b.setAttribute('aria-pressed', on); b.textContent = on ? `${st.nom} est choisi ✓` : `Je choisis ${st.nom}`;
+  const c = STYLES.find(x=>x.id===choix);
+  document.getElementById('resume').textContent = c ? `Ton choix : style ${STYLES.indexOf(c)+1}, ${c.nom}.` : "Aucun style choisi pour l'instant.";
+}
+document.getElementById('choisir').addEventListener('click',()=>{ const id = STYLES[index].id; choix = choix===id ? null : id; majChoix(); });
+const bulle = document.getElementById('bulle');
+function montrerBulle(t){ bulle.textContent = t; bulle.classList.add('vue'); clearTimeout(montrerBulle.t); montrerBulle.t = setTimeout(()=>bulle.classList.remove('vue'), 2200); }
+document.getElementById('copier').addEventListener('click', async ()=>{
+  const c = STYLES.find(x=>x.id===choix), m = document.getElementById('melange').value.trim();
+  if(!c && !m){ montrerBulle("Choisis d'abord un style"); return; }
+  const texte = `Mission 19 : je choisis le style ${c ? `${STYLES.indexOf(c)+1} « ${c.nom} »` : '(mélange)'}.${m ? ` Mélange : ${m}` : ''}`;
+  try{ await navigator.clipboard.writeText(texte); } catch { const z = document.createElement('textarea'); z.value = texte; document.body.append(z); z.select(); document.execCommand('copy'); z.remove(); }
+  montrerBulle('Choix copié ✓');
+});
+
+// Un faux QR code pour la maquette
+(function(){ let x = 37, p = ''; const rnd = ()=>((x=(x*9301+49297)%233280)/233280);
+  for(let i=0;i<21;i++) for(let j=0;j<21;j++){ const coin = (i<8&&j<8)||(i<8&&j>12)||(i>12&&j<8); if(!coin && rnd()>.52) p += `M${j} ${i}h1v1h-1z`; }
+  [[0,0],[14,0],[0,14]].forEach(([a,b])=>{ p += `M${a} ${b}h7v7h-7zM${a+1} ${b+1}v5h5v-5zM${a+2} ${b+2}h3v3h-3z`; });
+  document.getElementById('qr').innerHTML = `<path fill="#111" fill-rule="evenodd" d="${p}"/>`; })();
+
+montrer(0);
 </script>
 </body>
 </html>
