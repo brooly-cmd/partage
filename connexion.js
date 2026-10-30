@@ -109,7 +109,7 @@ function creerSalle() {
 
 function essayerCode(essaisRestants) {
   const code = tirerCode();
-  const peer = new Peer(PREFIXE + code);
+  const peer = new Peer(PREFIXE + code, CONFIG_PEER);
   etat.peer = peer;
 
   peer.on("open", () => {
@@ -228,7 +228,7 @@ function rejoindreSalle(code) {
   const bouton = $("form-rejoindre").querySelector("button[type=submit]");
   occuper(bouton, true, "Connexion…");
 
-  const peer = new Peer(); // l'invité reçoit un nom au hasard du standardiste
+  const peer = new Peer(CONFIG_PEER); // l'invité reçoit un nom au hasard du standardiste
   etat.peer = peer;
   let entre = false;
 

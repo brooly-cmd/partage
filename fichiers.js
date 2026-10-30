@@ -59,7 +59,7 @@ function majProgression(carte, fait, total) {
   carte.querySelector(".pourcent").textContent = pourcent + " %";
   carte.querySelector(".barre b").style.width = pourcent + "%";
   carte.querySelector(".barre").setAttribute("aria-valuenow", pourcent);
-  // Diagnostic de vitesse (provisoire) : « 318 / 512 Mo · 9,2 Mo/s · direct (host-host) »
+  // Diagnostic de vitesse (provisoire) : « 318 / 512 Mo · 9,2 Mo/s · en direct »
   if (!carte.debut) carte.debut = performance.now();
   const secondes = (performance.now() - carte.debut) / 1000;
   const vitesse = secondes > 0.5 ? " · " + (fait / 1048576 / secondes).toLocaleString("fr-FR", { maximumFractionDigits: 1 }) + " Mo/s" : "";
@@ -67,8 +67,8 @@ function majProgression(carte, fait, total) {
   carte.querySelector(".msg-fichier small").textContent = tailleProgression(fait, total) + vitesse + liaison;
 }
 
-// (diagnostic, provisoire) Par où passe le tuyau : en direct sur le réseau de la maison,
-// par l'adresse internet de la box, ou par un relais sur internet (le détour le plus lent)
+// (diagnostic) Par où passe le tuyau : « en direct » d'un appareil à l'autre,
+// ou « par relais » quand le direct est bloqué (le détour, qui compte dans le quota du relais)
 async function noterLiaison(carte, conn) {
   try {
     const stats = await conn.peerConnection.getStats();
@@ -78,8 +78,7 @@ async function noterLiaison(carte, conn) {
     });
     if (!paire) stats.forEach((s) => { if (s.type === "candidate-pair" && s.selected) paire = s; });
     const types = [stats.get(paire.localCandidateId).candidateType, stats.get(paire.remoteCandidateId).candidateType];
-    const nom = types.includes("relay") ? "par relais internet" : types.includes("srflx") ? "via la box" : "direct";
-    carte.liaison = nom + " (" + types.join("-") + ")";
+    carte.liaison = types.includes("relay") ? "par relais" : "en direct";
   } catch {
     carte.liaison = "liaison inconnue";
   }
