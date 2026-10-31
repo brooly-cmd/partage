@@ -43,7 +43,7 @@ export function creerDecor(scene, monde, { telephone, calme }) {
   projecteur.position.copy(PROJECTEUR);
   projecteur.target.position.copy(CIBLE);
   projecteur.castShadow = true;
-  projecteur.shadow.mapSize.set(telephone ? 1024 : 2048, telephone ? 1024 : 2048);
+  projecteur.shadow.mapSize.set(telephone ? 512 : 2048, telephone ? 512 : 2048);
   projecteur.shadow.bias = -0.0003;
   projecteur.shadow.normalBias = 0.02;
   projecteur.shadow.radius = 6;

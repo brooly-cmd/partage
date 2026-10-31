@@ -32,7 +32,7 @@ function liberer(groupe) {
 }
 
 // Coordonnées locales de Piece, après l'export Blender : Y en haut, dessus de l'établi à 3,90.
-export function creerObjets(piece, renderer, nacre) {
+export function creerObjets(piece, renderer, nacre, redessiner = () => {}) {
   const groupe = new THREE.Group();
   piece.add(groupe);
   const vivants = new Map();
@@ -52,6 +52,7 @@ export function creerObjets(piece, renderer, nacre) {
   function placer(v) {
     v.objet.scale.setScalar(v.avance);
     ombreSale = true;
+    redessiner();
   }
   function presence(liste) {
     invites = [...new Set(liste)].filter(Boolean).slice(0, 7);
@@ -105,7 +106,7 @@ export function creerObjets(piece, renderer, nacre) {
     objet.position.set(0.20, 4.26, -0.01);
     groupe.add(objet);
     const v = { objet, arc, avance: CALME ? 1 : 0, part: 0, cible: 0, index: 0 };
-    gsap.to(v, { avance: 1, duration: CALME ? 0 : 1, ease: 'power3.out' });
+    if (!CALME) gsap.to(v, { avance: 1, duration: 1, ease: 'power3.out' });
     return v;
   }
 
@@ -139,6 +140,7 @@ export function creerObjets(piece, renderer, nacre) {
         v.cible = m.pourcent / 100;
         if (v.arc) v.arc.visible = m.enCours;
       });
+      redessiner();
     },
     qr(svg) {
       if (svg === dernierQR) return;
@@ -146,6 +148,7 @@ export function creerObjets(piece, renderer, nacre) {
       const version = ++generationQR;
       fiche.visible = false;
       fiche.material.map?.dispose(); fiche.material.map = null; fiche.material.needsUpdate = true;
+      redessiner();
       if (!svg) return;
       const image = new Image();
       image.onload = () => {
@@ -154,6 +157,7 @@ export function creerObjets(piece, renderer, nacre) {
         const c = toile.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, 512, 512);
         c.drawImage(image, 0, 0, 512, 512);
         fiche.material.map = texture(toile); fiche.material.needsUpdate = true; fiche.visible = true;
+        redessiner();
       };
       // Le même QR que le panneau HTML, avec son fond blanc et sa marge de quatre modules.
       image.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg.replace('<path ', '<path fill="#111" '));
@@ -164,13 +168,16 @@ export function creerObjets(piece, renderer, nacre) {
       this.qr(''); this.presence([]);
       const anciens = [...vivants.values()]; vivants.clear();
       anciens.forEach(v => gsap.killTweensOf(v));
+      const terminer = () => {
+        anciens.forEach(v => liberer(v.objet));
+        renderer.shadowMap.needsUpdate = true;
+        redessiner();
+      };
+      if (CALME) { terminer(); return; }
       const fondu = { valeur: 1 };
-      disparition = gsap.to(fondu, { valeur: 0, duration: CALME ? 0 : 1.2, ease: 'power3.out',
+      disparition = gsap.to(fondu, { valeur: 0, duration: 1.2, ease: 'power3.out',
         onUpdate: () => anciens.forEach(v => v.objet.scale.setScalar(Math.max(0.001, fondu.valeur))),
-        onComplete: () => {
-          anciens.forEach(v => liberer(v.objet));
-          renderer.shadowMap.needsUpdate = true;
-        } });
+        onComplete: terminer });
     },
     image(t, delta = 0) {
       for (const v of vivants.values()) {
@@ -188,7 +195,7 @@ export function creerObjets(piece, renderer, nacre) {
       const anime = mixeur && occupations.some(v => v.objet.visible);
       if (anime) mixeur.update(delta);
       // Dix calculs d'ombre par seconde, fondus compris ; le dernier efface aussi les ombres au départ.
-      if ((ombreSale || anime) && t - derniereOmbre >= 0.1) {
+      if ((ombreSale || anime) && (CALME || t - derniereOmbre >= 0.1)) {
         renderer.shadowMap.needsUpdate = true;
         derniereOmbre = t; ombreSale = false;
       }

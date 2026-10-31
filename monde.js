@@ -23,13 +23,20 @@ const amortir = (de, vers, f) => de + (vers - de) * f;   // « lerp » : on fait
 
 // ---------- Le moteur de rendu ----------
 const canvas = document.getElementById('scene');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+let scenePrete = false, dessinDemande = false;
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+} catch (err) {
+  document.dispatchEvent(new Event('atelier:erreur'));
+  throw err;
+}
 renderer.setPixelRatio(Math.min(devicePixelRatio, TELEPHONE ? 1.5 : 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = TELEPHONE ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
 renderer.shadowMap.autoUpdate = false;   // l'ombre n'est recalculée que quand un objet bouge (voir la boucle)
 
 const scene = new THREE.Scene();
@@ -48,7 +55,7 @@ gestion.onProgress = (_, fait, total) => {
 const draco = new DRACOLoader(gestion).setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/libs/draco/gltf/');
 const photos = new THREE.TextureLoader(gestion);
 const photo = (nom, repetition) => {
-  const t = photos.load(DOSSIER + nom);
+  const t = photos.load(DOSSIER + nom, redessiner);
   t.colorSpace = THREE.SRGBColorSpace;
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.repeat.set(repetition, repetition);
@@ -82,6 +89,7 @@ function dessinerEcran() {
   c.fillStyle = 'rgba(0,0,0,.22)';                 // fines lignes, comme un vieil écran
   for (let y = 0; y < 400; y += 4) c.fillRect(0, y, 512, 2);
   texteEcran.needsUpdate = true;
+  redessiner();
 }
 dessinerEcran();
 // Ce que l'écran bombé affiche (une liste vide = écran noir)
@@ -124,7 +132,7 @@ const matieres = {
 };
 const contenus = new THREE.Group();
 monde.add(contenus);
-export const objets = creerObjets(contenus, renderer, nacre);
+export const objets = creerObjets(contenus, renderer, nacre, redessiner);
 const decor = creerDecor(scene, monde, { telephone: TELEPHONE, calme: CALME });
 
 // ---------- La lumière : la photo HDR du studio + une lumière douce ----------
@@ -132,7 +140,7 @@ const soleil = new THREE.DirectionalLight(0xfff6ec, 1.6);
 soleil.position.set(4.5, 12.6, 5.5);
 soleil.target.position.set(0, 3.6, 0);
 soleil.castShadow = true;
-soleil.shadow.mapSize.set(TELEPHONE ? 1024 : 2048, TELEPHONE ? 1024 : 2048);
+soleil.shadow.mapSize.set(TELEPHONE ? 512 : 2048, TELEPHONE ? 512 : 2048);
 Object.assign(soleil.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 1, far: 25 });
 soleil.shadow.bias = -0.0004;
 soleil.shadow.normalBias = 0.02;
@@ -155,6 +163,7 @@ function reglerJourNuit() {
     lampe: nuit ? 4 : 0, lampeSalle: nuit ? 5 : 3, ampoule: nuit ? 2 : 0.2, vitre: nuit ? 0.85 : 0.9 });
   soleil.color.set(nuit ? 0xb8c4ff : 0xfff6ec);
   arriere.intensity = nuit && !TELEPHONE ? 8 : 0;
+  redessiner();
 }
 function appliquerLumieres() {
   const { piece, allume } = lumiere;
@@ -248,6 +257,7 @@ function cadrer() {
   const demi = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
   distance = Math.max(6.6 / 2 / demi, 7.0 / 2 / (demi * camera.aspect)) * 1.05;
   camera.updateProjectionMatrix();
+  redessiner();
 }
 cadrer();
 addEventListener('resize', cadrer);
@@ -267,13 +277,15 @@ canvas.addEventListener('wheel', e => {
   if (!reglages.zoom) return;
   e.preventDefault();
   zoom.cible = bornerZoom(zoom.cible * Math.exp(e.deltaY * 0.0012));
+  redessiner();
 }, { passive: false });
-canvas.addEventListener('dblclick', () => { if (reglages.zoom) zoom.cible = 1; });
+canvas.addEventListener('dblclick', () => { if (reglages.zoom) { zoom.cible = 1; redessiner(); } });
 const ecartDoigts = () => { const [a, b] = [...doigts.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
 // Remet la pièce de face (la pièce ouverte vers la caméra), par le plus court chemin
 export function remettreDeFace() {
   tour.elan = 0;
   tour.cible = Math.round(tour.cible / (Math.PI * 2)) * Math.PI * 2;
+  redessiner();
 }
 const rayon = new THREE.Raycaster();
 const pointeur = new THREE.Vector2(-9, -9);
@@ -291,13 +303,14 @@ canvas.addEventListener('pointermove', e => {
   if (doigts.has(e.pointerId)) {                // deux doigts qui s'écartent ou se rapprochent
     const avant = doigts.size === 2 ? ecartDoigts() : 0;
     doigts.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (avant) zoom.cible = bornerZoom(zoom.cible * avant / ecartDoigts());
+    if (avant) { zoom.cible = bornerZoom(zoom.cible * avant / ecartDoigts()); redessiner(); }
   }
   if (!tour.glisse) return;
   const dx = e.clientX - tour.dernierX;
   tour.dernierX = e.clientX;
   tour.cible += dx * 0.006;
   tour.elan = dx * 0.006;
+  redessiner();
 });
 const lacher = e => { tour.glisse = false; doigts.delete(e.pointerId); };
 canvas.addEventListener('pointerup', lacher);
@@ -308,7 +321,8 @@ canvas.addEventListener('pointerleave', () => pointeur.set(-9, -9));
 const horloge = new THREE.Clock();
 const sphere = new THREE.Spherical();
 const compteur = new URLSearchParams(location.search).has('fps') ? document.body.appendChild(Object.assign(document.createElement('div'), { id: 'fps' })) : null;
-let images = 0, depuis = performance.now();
+let images = 0, depuis = performance.now(), preteDepuis = null;
+let imagesTelephone = 0, depuisTelephone = depuis;
 
 function image() {
   const delta = horloge.getDelta();
@@ -316,17 +330,17 @@ function image() {
 
   // Le doigt ou la souris fait tourner la pièce, avec un peu d'élan
   if (!tour.glisse && !CALME) { tour.cible += tour.elan; tour.elan *= 0.92; }
-  tour.actuel = amortir(tour.actuel, tour.cible, 0.08);
+  tour.actuel = CALME ? tour.cible : amortir(tour.actuel, tour.cible, 0.08);
   monde.rotation.y = tour.actuel + (CALME ? 0 : Math.sin(t * 0.25) * 0.05);
 
   // La caméra suit la souris avec retard (environ 4°) et respire doucement
-  souris.lisseX = amortir(souris.lisseX, TELEPHONE ? 0 : souris.x, 0.05);
-  souris.lisseY = amortir(souris.lisseY, TELEPHONE ? 0 : souris.y, 0.05);
+  souris.lisseX = CALME ? 0 : amortir(souris.lisseX, TELEPHONE ? 0 : souris.x, 0.05);
+  souris.lisseY = CALME ? 0 : amortir(souris.lisseY, TELEPHONE ? 0 : souris.y, 0.05);
   const souffle = CALME ? 0 : Math.sin(t * 0.6);
   for (const k in vue) cam[k] = CALME ? vue[k] : amortir(cam[k], vue[k], 0.06);
   regard.set(cam.x, cam.y, cam.z);
   if (!reglages.zoom) zoom.cible = 1;
-  zoom.actuel = amortir(zoom.actuel, zoom.cible, 0.1);
+  zoom.actuel = CALME ? zoom.cible : amortir(zoom.actuel, zoom.cible, 0.1);
   sphere.set(distance * cam.dist * zoom.actuel * (1 + souffle * 0.012),
     THREE.MathUtils.degToRad(cam.polaire + souris.lisseY * 2.5 + souffle * 0.6),
     THREE.MathUtils.degToRad(cam.azimut + souris.lisseX * 4));
@@ -335,7 +349,7 @@ function image() {
   camera.setViewOffset(innerWidth, innerHeight, -cam.dx * innerWidth, cam.dy * innerHeight, innerWidth, innerHeight);
 
   // L'objet survolé tourne doucement
-  if (!TELEPHONE && survolables.length) {
+  if (!CALME && !TELEPHONE && survolables.length) {
     rayon.setFromCamera(pointeur, camera);
     const touche = rayon.intersectObjects(survolables, true)[0];
     for (const g of survolables) {
@@ -352,21 +366,57 @@ function image() {
   objets.image(t, delta);
 
   // Le curseur de l'écran clignote
-  const visible = Math.floor(t * 1.6) % 2 === 0;
+  const visible = CALME || Math.floor(t * 1.6) % 2 === 0;
   if (visible !== curseurVisible) { curseurVisible = visible; dessinerEcran(); }
 
-  if (composer) { grain.uniforms.uTemps.value = t % 10; composer.render(); }
+  if (composer) { grain.uniforms.uTemps.value = CALME ? 0 : t % 10; composer.render(); }
   else renderer.render(scene, camera);
 
+  const maintenant = performance.now();
+  if (preteDepuis === null) {
+    preteDepuis = maintenant;
+    document.dispatchEvent(new Event('atelier:pret'));
+  }
+  if (TELEPHONE && !CALME && renderer.getPixelRatio() > 1) {
+    imagesTelephone++;
+    if (maintenant - depuisTelephone >= 2000) {
+      if (imagesTelephone * 1000 / (maintenant - depuisTelephone) < 30)
+        renderer.setPixelRatio(Math.max(1, renderer.getPixelRatio() - 0.25));
+      imagesTelephone = 0; depuisTelephone = maintenant;
+    }
+  }
   if (compteur) {
     images++;
-    const maintenant = performance.now();
-    if (maintenant - depuis > 1000) { compteur.textContent = images + ' images/s'; images = 0; depuis = maintenant; }
+    if (CALME || maintenant - depuis > 1000) {
+      compteur.textContent = (CALME ? 'À la demande' : Math.round(images * 1000 / (maintenant - depuis)) + ' images/s') + ' · prête en '
+        + (preteDepuis / 1000).toFixed(1).replace('.', ',') + ' s · pixelRatio ' + renderer.getPixelRatio();
+      images = 0; depuis = maintenant;
+    }
   }
 }
 
-function demarrer() { horloge.getDelta(); renderer.setAnimationLoop(image); }
-document.addEventListener('visibilitychange', () => document.hidden ? renderer.setAnimationLoop(null) : demarrer());
+// En CALME, une seule image par changement, en regroupant les demandes du même instant.
+export function redessiner() {
+  if (!CALME || !scenePrete || document.hidden || dessinDemande) return;
+  dessinDemande = true;
+  // Three.js programme son prochain rappel en revenant : on l'annule juste après.
+  renderer.setAnimationLoop(() => queueMicrotask(() => {
+    renderer.setAnimationLoop(null); dessinDemande = false;
+    image();
+  }));
+}
+
+function demarrer() {
+  scenePrete = true;
+  images = imagesTelephone = 0; depuis = depuisTelephone = performance.now();
+  horloge.getDelta();
+  if (CALME) redessiner();
+  else renderer.setAnimationLoop(image);
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { renderer.setAnimationLoop(null); dessinDemande = false; }
+  else if (scenePrete) demarrer();
+});
 
 // Tout est chargé : on prépare les matières (pas d'à-coup), puis la scène apparaît en fondu
 export const pret = Promise.all([envPret, modelePret, personnagePret]).then(async ([, , gltf]) => {

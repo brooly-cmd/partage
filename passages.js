@@ -4,12 +4,12 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
 import './atelier.js';
-import { vue, lumiere, reglages, pret, remettreDeFace, afficherEcran } from './monde.js';
+import { vue, lumiere, reglages, pret, remettreDeFace, afficherEcran, redessiner } from './monde.js';
 
 gsap.registerPlugin(ScrollTrigger);
 const CALME = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const ETROIT = matchMedia('(max-width: 899px)');            // téléphone : le texte en bas, le monde en haut
-const D = CALME ? 0.01 : 1;                                   // sans mouvement : les passages sont instantanés
+const D = CALME ? 0 : 1;                                      // sans mouvement : les passages sont instantanés
 const $ = id => document.getElementById(id);
 // ---------- Les places de la caméra (voir vue dans monde.js) ----------
 // t1 = la pièce seule au centre, t2 = la pièce de plus près (« Tout disparaît à la fermeture. »),
@@ -36,19 +36,23 @@ function viser() {
   melanger(tmp, P.salle, etat.salle, tmp);
   melanger(tmp, P.fermee, etat.ferme, vue);
   $('aide').style.opacity = Math.max(0, 1 - etat.histoire * 2.5) * (1 - etat.salle);
+  redessiner();
 }
 
 // ---------- Le défilement doux (Lenis) relié à GSAP ----------
 history.scrollRestoration = 'manual';
 scrollTo(0, 0);
-const lenis = new Lenis({ duration: 1.2, smoothWheel: !CALME, prevent: node => node.closest('.fil, dialog, textarea'),
+const lenis = CALME ? null : new Lenis({ duration: 1.2, smoothWheel: true, prevent: node => node.closest('.fil, dialog, textarea'),
   easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
-lenis.on('scroll', ScrollTrigger.update);
-gsap.ticker.add(time => { lenis.raf(time * 1000); viser(); });
-gsap.ticker.lagSmoothing(0);
+if (lenis) {
+  lenis.on('scroll', ScrollTrigger.update);
+  gsap.ticker.add(time => { lenis.raf(time * 1000); viser(); });
+  gsap.ticker.lagSmoothing(0);
+}
 
 ScrollTrigger.create({ trigger: '#histoire', start: 'top top', end: 'bottom bottom',
-  onUpdate: s => { etat.histoire = s.progress * 2; } });
+  onUpdate: s => { etat.histoire = s.progress * 2; if (CALME) viser(); } });
+ETROIT.addEventListener('change', viser);
 // Chaque texte apparaît quand son temps arrive au milieu de l'écran, puis s'efface
 const textes = gsap.utils.toArray('.temps');
 textes.forEach((section, n) => {
@@ -57,7 +61,7 @@ textes.forEach((section, n) => {
     let ecart = s.progress - 0.5;                             // 0 = le temps est en plein écran
     if ((n === 0 && ecart < 0) || (n === textes.length - 1 && ecart > 0)) ecart = 0;
     const o = gsap.utils.clamp(0, 1, 1 - (Math.abs(ecart) - 0.08) / 0.2);
-    gsap.set(texte, { opacity: o, y: ecart * -80, pointerEvents: o > 0.5 ? 'auto' : 'none' });
+    gsap.set(texte, { opacity: o, y: CALME ? 0 : ecart * -80, pointerEvents: o > 0.5 ? 'auto' : 'none' });
   } });
 });
 
@@ -68,7 +72,7 @@ document.fonts.ready.then(() => ScrollTrigger.refresh());
 let passage = null;
 let courant = 'accueil';
 const fige = oui => {
-  oui ? lenis.stop() : lenis.start();
+  oui ? lenis?.stop() : lenis?.start();
   reglages.tourner = !oui;
   document.documentElement.classList.toggle('fige', oui);
 };
@@ -81,7 +85,7 @@ function changer(nom, initial = false) {
   fige(nom !== 'accueil');
   reglages.zoom = nom === 'hote' || nom === 'invite';   // dans la salle, on peut zoomer
   const panneau = $('ecran-' + nom);
-  const tl = passage = gsap.timeline({ defaults: { ease: 'power3.out' } });
+  const tl = passage = gsap.timeline({ defaults: { ease: 'power3.out' }, onUpdate: viser, onComplete: viser });
   if (nom === 'hote' || nom === 'invite') {
     if (document.activeElement?.matches('input, textarea')) document.activeElement.blur();
     etat.histoire = 2;
@@ -110,13 +114,16 @@ function changer(nom, initial = false) {
     tl.to(etat, { salle: 0, ferme: 0, duration: 1.4 * D }, 0)
       .to(lumiere, { piece: 0, allume: 1, duration: D }, 0);
   }
+  viser();
 }
 function allerAuxBoutons() {
   if (courant !== 'accueil') return;
-  lenis.resize();
+  lenis?.resize();
   ScrollTrigger.refresh();
-  lenis.scrollTo($('t3'), { immediate: true });
+  if (lenis) lenis.scrollTo($('t3'), { immediate: true });
+  else scrollTo(0, $('t3').offsetTop);
   etat.histoire = 2;
+  viser();
 }
 document.addEventListener('partage:ecran', e => changer(e.detail.nom));
 changer(document.body.dataset.ecran, true);

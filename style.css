@@ -94,6 +94,10 @@ html.lenis, html.lenis body { height:auto; }
 .toast.visible { opacity:1; transform:translate(-50%,0); }
 #chargement { position:fixed; inset:0; z-index:50; display:grid; place-content:center; justify-items:center; gap:14px; pointer-events:none; }
 #chargement.fini { opacity:0; visibility:hidden; }
+/* L'image sera livrée séparément ; la couleur de fond reste lisible si elle manque. */
+.sans-3d body::before { content:''; position:fixed; inset:0; background:var(--fond) url('3d/atelier-repli.jpg') center/cover no-repeat; pointer-events:none; }
+.sans-3d #scene,.sans-3d #chargement,.sans-3d #aide { display:none; }
+.sans-3d .texte { opacity:1 !important; transform:none !important; pointer-events:auto !important; }
 #piste { width:120px; height:2px; }
 #barre { width:0; height:100%; }
 #fps { position:fixed; left:12px; bottom:12px; z-index:10; padding:8px; }
@@ -134,5 +138,5 @@ html.lenis, html.lenis body { height:auto; }
   .salle-invite { grid-template-rows:auto auto minmax(16px,1fr) auto auto minmax(44px,23dvh) auto; }
 }
 @media(prefers-reduced-motion:reduce) {
-  *,*::before,*::after { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+  *,*::before,*::after { animation:none !important; transition:none !important; scroll-behavior:auto !important; }
 }
