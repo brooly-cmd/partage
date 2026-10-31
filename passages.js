@@ -75,7 +75,7 @@ const fige = oui => {
 function changer(nom, initial = false) {
   if (nom === courant && !initial) return;
   passage?.kill();
-  document.querySelectorAll('.ecran').forEach(e => { e.inert = false; e.style.opacity = ''; });
+  document.querySelectorAll('.ecran').forEach(e => { e.inert = false; });
   const avant = courant;
   courant = nom;
   fige(nom !== 'accueil');
@@ -88,24 +88,22 @@ function changer(nom, initial = false) {
     remettreDeFace();
     const code = nom === 'hote' ? $('plaques-hote').getAttribute('aria-label').split(': ')[1] : $('code-invite').textContent;
     afficherEcran(nom === 'hote' ? [code] : ['Salle', code], nom === 'hote' ? 64 : 38);
+    // Pas de fondu sur les panneaux : Safari (iPhone) ne les redessinait plus ensuite. On les rend juste
+    // touchables une fois la caméra arrivée.
     panneau.inert = true;
-    tl.set(panneau, { opacity: 0 })
-      .to(etat, { salle: 1, ferme: 0, duration: 1.4 * D }, 0)
+    tl.to(etat, { salle: 1, ferme: 0, duration: 1.4 * D }, 0)
       .to(lumiere, { piece: 1, allume: 1, duration: D }, 0)
-      .to(panneau, { opacity: 1, duration: 0.8 * D }, 1.2 * D)
       .call(() => {
         panneau.inert = false;
         const titre = panneau.querySelector('h2');
         titre.tabIndex = -1; titre.focus({ preventScroll: true });
-      });
+      }, null, 1.4 * D);
   } else if (nom === 'fermee') {
     panneau.inert = true;
-    tl.set(panneau, { opacity: 0 })
-      .to(etat, { ferme: 1, duration: 1.6 * D, ease: 'power3.inOut' }, 0)
+    tl.to(etat, { ferme: 1, duration: 1.6 * D, ease: 'power3.inOut' }, 0)
       .to(lumiere, { allume: 0, duration: 1.2 * D }, 0.2 * D)
       .call(() => afficherEcran([]), null, 0.9 * D)
-      .to(panneau, { opacity: 1, duration: 0.8 * D }, 1.4 * D)
-      .call(() => { panneau.inert = false; $('btn-retour').focus({ preventScroll: true }); });
+      .call(() => { panneau.inert = false; $('btn-retour').focus({ preventScroll: true }); }, null, 1.6 * D);
   } else {
     afficherEcran(['Partage', 'éphémère']);
     if (!initial || avant !== 'accueil') allerAuxBoutons();
