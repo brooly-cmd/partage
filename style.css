@@ -34,7 +34,7 @@ html.lenis, html.lenis body { height:auto; }
 .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:44px; padding:0 16px; border:0; white-space:nowrap; }
 .btn:disabled { opacity:.6; cursor:wait; }
 .salle { position:fixed; inset:0; height:100dvh; padding:var(--haut) 16px var(--bas); display:grid; gap:10px 20px;
-  grid-template-columns:280px minmax(0,1fr) 380px; grid-template-rows:auto auto auto minmax(0,1fr) auto;
+  grid-template-columns:240px minmax(0,1fr) 320px; grid-template-rows:auto auto auto minmax(0,1fr) auto;
   grid-template-areas:'tete tete tete' 'code . bandeau' 'code . info' 'etat . fil' 'invites . bas'; }
 .zone-tete { grid-area:tete; } .zone-code { grid-area:code; align-self:start; } .zone-etat { grid-area:etat; align-self:start; }
 .zone-invites { grid-area:invites; align-self:start; } .zone-bandeau { grid-area:bandeau; } .zone-info { grid-area:info; }
@@ -120,6 +120,11 @@ html.lenis, html.lenis body { height:auto; }
   .confirmation { margin:auto auto var(--bas); }
 }
 @media(min-width:900px) {
+  /* PC : panneaux discrets, la pièce reste au centre. Le fil ne prend que la place de ses messages, en bas. */
+  .zone-fil { align-self:end; max-height:100%; }
+  .qr { width:116px; height:116px; }
+  .carte-code { padding:12px 14px; }
+  .carte-code .plaques { font-size:52px; }
   .zone-code { grid-row:2 / -1; grid-column:1; }
   .zone-etat { align-self:end; }
   .salle-invite .zone-etat { grid-row:2; grid-column:1; align-self:start; }

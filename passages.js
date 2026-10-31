@@ -18,7 +18,7 @@ const places = etroit => ({
   t1: { x: 0, y: 3.9, z: -0.1, dist: etroit ? 0.56 : 0.58, polaire: 72, azimut: 38, dx: etroit ? 0 : 0.2, dy: etroit ? 0.12 : 0.1 },
   t2: { x: 0, y: 3.85, z: -0.1, dist: etroit ? 0.5 : 0.38, polaire: 68, azimut: 18, dx: etroit ? 0 : -0.16, dy: etroit ? 0.14 : 0 },
   t3: { x: 0, y: 3.75, z: -0.15, dist: etroit ? 0.42 : 0.46, polaire: 63, azimut: 42, dx: etroit ? 0 : 0.2, dy: etroit ? 0.22 : 0 },
-  salle: { x: 0, y: 3.9, z: -0.1, dist: etroit ? 0.46 : 0.43, polaire: 68, azimut: 36, dx: etroit ? 0 : -0.05, dy: etroit ? 0.06 : 0 },
+  salle: { x: 0, y: 3.9, z: -0.1, dist: etroit ? 0.46 : 0.43, polaire: 68, azimut: 36, dx: etroit ? 0 : -0.03, dy: etroit ? 0.06 : -0.06 },
   fermee: { x: 0, y: 3.9, z: -0.1, dist: etroit ? 0.7 : 0.5, polaire: 70, azimut: 30, dx: 0, dy: etroit ? 0.08 : 0 },
 });
 const PLACES = { large: places(false), etroit: places(true) };
