@@ -1,9 +1,9 @@
 ﻿/* Seuls les fichiers de l'app sont mis en cache. Jamais les salles, textes ou fichiers reçus. */
-const VERSION = 'partage-ephemere-m22c-v28';
+const VERSION = 'partage-ephemere-m22c-v29';
 const FICHIERS = [
   './', 'index.html', 'style.css', 'minuit.css', 'app.js', 'connexion.js', 'tuyaux.js',
   'relais.js', 'messages.js', 'fichiers.js', 'reception.js', 'ecrans.js', 'inactivite.js',
-  'installation.js', 'demarrage-monde.js', 'monde.js', 'passages.js', 'atelier.js', 'objets.js', 'decor.js',
+  'installation.js', 'demarrage-monde.js', 'monde.js', 'passages.js', 'atelier.js', 'objets.js', 'decor.js', 'diagnostic.js',
   'manifest.webmanifest', 'logo.svg', 'icones/icone-192.png', 'icones/icone-512.png', 'icones/icone-apple.png',
   '3d/atelier.glb', '3d/studio_small_09_1k.hdr', '3d/wood_floor_diff_1k.jpg', '3d/plaster_grey_04_diff_1k.jpg',
 ];
