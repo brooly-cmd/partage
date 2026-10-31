@@ -10,17 +10,81 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter+Tight:wght@400;600&display=swap" rel="stylesheet">
 <style>
-  :root{ --fond:#ecebe6; --texte:#121212; --doux:#5b5b56; --accent:#d63d12; --carte2:#dcdbd5; }
+  :root{ --fond:#ecebe6; --carte:#f8f8f5; --carte2:#dcdbd5; --texte:#121212; --doux:#5b5b56; --accent:#d63d12;
+    --bouton:#121212; --bouton-texte:#ffffff; --danger:#c42b1c; }
   @media (prefers-color-scheme:dark){
-    :root{ --fond:#0d0d0d; --texte:#f1f0eb; --doux:#a8a7a1; --accent:#ff6a3d; --carte2:#2b2b2b; }
+    :root{ --fond:#0d0d0d; --carte:#191919; --carte2:#2b2b2b; --texte:#f1f0eb; --doux:#a8a7a1; --accent:#ff6a3d;
+      --bouton:#f1f0eb; --bouton-texte:#0d0d0d; --danger:#d8392a; }
   }
-  html,body{ margin:0; height:100%; background:var(--fond); color:var(--texte); overflow:hidden;
-    font-family:"Inter Tight",system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
-  #scene{ position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; cursor:grab; outline:none; }
+  html,body{ margin:0; background:var(--fond); color:var(--texte); overflow-x:hidden;
+    font-family:"Inter Tight",system-ui,sans-serif; font-size:16px; line-height:1.45; -webkit-font-smoothing:antialiased; }
+  /* Lenis : il gère le défilement ; « arrêté » = la page ne défile plus */
+  html.lenis, html.lenis body{ height:auto; }
+  .lenis.lenis-smooth{ scroll-behavior:auto !important; }
+  .lenis.lenis-stopped{ overflow:hidden; }
+  /* pan-y : glisser de haut en bas fait défiler, de gauche à droite fait tourner la platine */
+  #scene{ position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:pan-y; cursor:grab; outline:none; }
   #scene:active{ cursor:grabbing; }
+  .fige #scene{ cursor:default; touch-action:none; }
+
+  /* L'histoire : 3 temps, un écran chacun ; on ne touche que les textes (le reste laisse passer vers la scène) */
+  #histoire{ position:relative; z-index:1; pointer-events:none; }
+  .temps{ min-height:100vh; min-height:100svh; box-sizing:border-box; display:flex; align-items:flex-end;
+    padding:0 6vw 12vh; }
+  .texte{ max-width:520px; }
+  #t2{ justify-content:flex-end; }
+  h1, .grand, h2, .code{ font-family:"Instrument Serif",serif; font-weight:400; letter-spacing:-.02em; margin:0; }
+  h1{ font-size:clamp(48px, 8vw, 96px); line-height:.95; }
+  .grand{ font-size:clamp(36px, 5vw, 64px); line-height:1; }
+  .texte p{ margin:14px 0 0; }
+  h2{ font-size:32px; line-height:1.1; }
+  .petit{ font-size:13px; color:var(--doux); }
+
+  /* Panneaux posés sur la scène */
+  .panneau{ background:var(--carte); border-radius:4px; padding:16px; box-shadow:0 12px 30px rgba(0,0,0,.12); }
+  .accueil{ width:min(360px, 100%); display:grid; gap:10px; }
+  .texte.accueil p{ margin:0; }
+  .accueil .ou{ text-align:center; color:var(--doux); font-size:13px; }
+  form{ display:flex; gap:8px; margin:0; }
+  input{ flex:1; min-width:0; height:44px; box-sizing:border-box; padding:0 12px; border:0; border-radius:4px;
+    background:var(--carte2); color:var(--texte); font:inherit; font-size:16px; }
+  input::placeholder{ color:var(--doux); opacity:1; }
+  button{ min-height:44px; padding:0 18px; border:0; border-radius:4px; font:600 15px "Inter Tight",system-ui,sans-serif;
+    cursor:pointer; transition:transform .3s cubic-bezier(.16,1,.3,1); }
+  button:active{ transform:scale(.97); }
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  .principal{ background:var(--bouton); color:var(--bouton-texte); }
+  .secondaire{ background:var(--carte2); color:var(--texte); }
+  .danger{ background:var(--danger); color:#fff; }
+  #erreur{ font-size:13px; color:var(--danger); }
+  #erreur:empty{ display:none; }
+
+  /* La salle et « Salle fermée » : par-dessus la scène, invisibles au départ (GSAP les fait apparaître) */
+  .couche{ position:fixed; inset:0; z-index:2; pointer-events:none; visibility:hidden; opacity:0;
+    padding:max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); box-sizing:border-box; }
+  .couche > *{ pointer-events:auto; }
+  .barre{ display:flex; align-items:center; gap:10px; padding:8px 8px 8px 14px; }
+  .barre svg{ width:24px; height:24px; flex:none; }
+  #titre-salle{ flex:1; font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #panneau-code{ position:absolute; left:16px; bottom:max(16px, env(safe-area-inset-bottom)); }
+  .code{ font-size:48px; line-height:1; font-variant-numeric:tabular-nums; }
+  #fermee{ display:flex; align-items:flex-end; justify-content:center; }
+  #fermee .panneau{ width:min(420px, 100%); box-sizing:border-box; display:grid; gap:10px; }
+  #fermee p{ margin:0; }
+  @media (min-width:701px){
+    .barre{ max-width:560px; margin-left:auto; }
+    .code{ font-size:64px; }
+    #panneau-code{ left:6vw; bottom:12vh; }
+    #fermee{ align-items:flex-end; justify-content:flex-start; padding:0 6vw 12vh; }
+  }
+  @media (max-width:700px){
+    .temps{ padding:0 16px max(64px, calc(env(safe-area-inset-bottom) + 48px)); }
+    #t2{ justify-content:flex-start; }
+    #t3 .texte{ width:100%; box-sizing:border-box; }
+  }
   /* Écran de chargement : un pourcentage, puis un fondu */
   #chargement{ position:fixed; inset:0; display:grid; place-content:center; gap:14px; justify-items:center;
-    background:var(--fond); transition:opacity 1.2s cubic-bezier(.16,1,.3,1), visibility 0s 1.2s; z-index:2; }
+    background:var(--fond); transition:opacity 1.2s cubic-bezier(.16,1,.3,1), visibility 0s 1.2s; z-index:3; }
   #chargement.fini{ opacity:0; visibility:hidden; }
   #pourcent{ font-family:"Instrument Serif",serif; font-size:64px; line-height:1; letter-spacing:-.02em;
     font-variant-numeric:tabular-nums; }
@@ -31,7 +95,9 @@
   #fps{ position:fixed; top:12px; left:12px; font:13px/1 ui-monospace,monospace; color:var(--doux); z-index:1; }
 </style>
 <script type="importmap">
-{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+ "gsap":"https://cdn.jsdelivr.net/npm/gsap@3.12.5/index.js","gsap/ScrollTrigger":"https://cdn.jsdelivr.net/npm/gsap@3.12.5/ScrollTrigger.js",
+ "lenis":"https://cdn.jsdelivr.net/npm/lenis@1.1.0/dist/lenis.mjs"}}
 </script>
 </head>
 <body>
@@ -40,7 +106,52 @@
   <div id="pourcent">0 %</div>
   <div id="piste"><div id="barre"></div></div>
 </div>
-<p id="aide">Glisse pour faire tourner la platine</p>
-<script type="module" src="monde.js"></script>
+<main id="histoire">
+  <section class="temps" id="t1">
+    <div class="texte">
+      <h1>Partage éphémère</h1>
+      <p>Envoie du texte et des fichiers, sans compte. Tout disparaît à la fermeture.</p>
+    </div>
+  </section>
+  <section class="temps" id="t2">
+    <div class="texte"><p class="grand">Tout disparaît à la fermeture.</p></div>
+  </section>
+  <section class="temps" id="t3">
+    <div class="texte panneau accueil">
+      <button id="creer" class="principal">Créer une salle</button>
+      <p class="ou">ou</p>
+      <form id="rejoindre" novalidate>
+        <input id="code" inputmode="numeric" autocomplete="off" maxlength="7" placeholder="Code à 6 chiffres" aria-label="Code à 6 chiffres">
+        <button class="secondaire">Rejoindre</button>
+      </form>
+      <p id="erreur" role="alert"></p>
+      <p class="petit">Aucun compte. Aucun stockage en ligne.</p>
+    </div>
+  </section>
+</main>
+<p id="aide">Fais défiler · glisse pour faire tourner la platine</p>
+
+<div id="salle" class="couche">
+  <header class="panneau barre">
+    <svg viewBox="0 0 32 32" aria-hidden="true">
+      <circle cx="16" cy="16" r="9.5" fill="none" stroke="currentColor" stroke-opacity=".22" stroke-width="9"/>
+      <circle cx="16" cy="16" r="9.5" fill="none" stroke="currentColor" stroke-width="9" stroke-dasharray="43 59.7" transform="rotate(-90 16 16)"/>
+    </svg>
+    <span id="titre-salle">Ta salle</span>
+    <button id="sortir" class="danger">Fermer la salle</button>
+  </header>
+  <div id="panneau-code" class="panneau"><div class="code">482 915</div></div>
+</div>
+
+<div id="fermee" class="couche">
+  <div class="panneau">
+    <h2>La salle est fermée</h2>
+    <p>Tu as fermé la salle. Tout a été supprimé.</p>
+    <p class="petit">Les messages et les fichiers ont été supprimés.</p>
+    <button id="retour" class="principal">Retour à l'accueil</button>
+    <button id="nouvelle" class="secondaire">Créer une nouvelle salle</button>
+  </div>
+</div>
+<script type="module" src="passages.js"></script>
 </body>
 </html>

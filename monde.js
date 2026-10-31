@@ -1,6 +1,7 @@
 // Le monde 3D (mission 20) : la platine, la planète en nacre, l'anneau du temps et l'atelier.
 // Les objets viennent de 3d/atelier.glb (fabriqué dans Blender par 3d/fabrique-atelier.py) ;
 // ici on leur donne leurs vraies matières, la lumière et le mouvement.
+// Mission 21 : passages.js pilote la caméra (vue), les lumières (lumiere) et l'anneau (minuteur).
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
@@ -65,19 +66,21 @@ toile.width = 512; toile.height = 400;
 const texteEcran = new THREE.CanvasTexture(toile);
 texteEcran.colorSpace = THREE.SRGBColorSpace;
 let curseurVisible = true;
+let lignesEcran = ['Partage', 'éphémère'], tailleEcran = 38;
 function dessinerEcran() {
   const c = toile.getContext('2d');
   c.fillStyle = '#1b2a1f'; c.fillRect(0, 0, 512, 400);
   c.fillStyle = '#9dffb0';
-  c.font = '600 38px ui-monospace, Menlo, Consolas, monospace';
-  c.fillText('Partage', 56, 150);
-  c.fillText('éphémère', 56, 200);
-  if (curseurVisible) c.fillRect(56, 230, 24, 6);
+  c.font = `600 ${tailleEcran}px ui-monospace, Menlo, Consolas, monospace`;
+  lignesEcran.forEach((l, i) => c.fillText(l, 56, 150 + i * tailleEcran * 1.3));
+  if (curseurVisible && lignesEcran.length) c.fillRect(56, 150 + (lignesEcran.length - 1) * tailleEcran * 1.3 + 30, 24, 6);
   c.fillStyle = 'rgba(0,0,0,.22)';                 // fines lignes, comme un vieil écran
   for (let y = 0; y < 400; y += 4) c.fillRect(0, y, 512, 2);
   texteEcran.needsUpdate = true;
 }
 dessinerEcran();
+// Ce que l'écran bombé affiche (une liste vide = écran noir)
+export function afficherEcran(lignes, taille = 38) { lignesEcran = lignes; tailleEcran = taille; dessinerEcran(); }
 
 // ---------- Les matières ----------
 const bois = photo('wood_floor_diff_1k.jpg', 1);
@@ -171,20 +174,36 @@ const arriere = new THREE.PointLight(0xff6a3d, 0, 9, 1.5);               // lueu
 arriere.position.set(-3, 5.5, -5);
 scene.add(arriere);
 
+// Les lumières de la pièce, réglées par passages.js :
+// piece 0 → 1 = la lampe et l'écran s'allument (on entre) ; allume 1 → 0 = la pièce s'éteint (salle fermée) ;
+// point 0 → 1 = le point orange qui respire apparaît.
+export const lumiere = { piece: 0, allume: 1, point: 0 };
+const base = {};                                  // les valeurs du jour ou de la nuit, avant ces réglages
 function reglerJourNuit() {
   const nuit = NUIT.matches;
   scene.background = new THREE.Color(nuit ? 0x0d0d0d : 0xecebe6);
-  scene.environmentIntensity = nuit ? 0.28 : 1;
-  soleil.intensity = nuit ? (TELEPHONE ? 0 : 0.35) : 1.6;
+  Object.assign(base, { env: nuit ? 0.28 : 1, soleil: nuit ? (TELEPHONE ? 0 : 0.35) : 1.6,
+    lampe: nuit ? 9 : 0, lampeSalle: nuit ? 11 : 6, ampoule: nuit ? 4 : 0.2, vitre: nuit ? 0.7 : 1.1 });
   soleil.color.set(nuit ? 0xb8c4ff : 0xfff6ec);
-  lampe.intensity = nuit ? 9 : 0;
   arriere.intensity = nuit && !TELEPHONE ? 8 : 0;
-  matieres.ampoule.emissiveIntensity = nuit ? 4 : 0.2;
   matieres.vitre.emissive.set(nuit ? 0x1c2a4a : 0xdfe9f2);
-  matieres.vitre.emissiveIntensity = nuit ? 0.7 : 1.1;
+}
+function appliquerLumieres() {
+  const { piece, allume } = lumiere;
+  scene.environmentIntensity = base.env * (0.55 + 0.45 * allume);
+  soleil.intensity = base.soleil * (0.6 + 0.4 * allume);
+  lampe.intensity = amortir(base.lampe, base.lampeSalle, piece) * allume;
+  matieres.ampoule.emissiveIntensity = amortir(base.ampoule, 4, piece) * allume;
+  matieres.ecran.emissiveIntensity = (0.7 + 0.7 * piece) * allume;
+  matieres.vitre.emissiveIntensity = base.vitre * (0.5 + 0.5 * allume);
 }
 reglerJourNuit();
 NUIT.addEventListener('change', reglerJourNuit);
+
+// Le point orange de « Salle fermée » : il respire entre la planète et l'anneau, du côté de la caméra
+const point = new THREE.Mesh(new THREE.SphereGeometry(0.07, 48, 24),
+  new THREE.MeshPhysicalMaterial({ color: 0xff5a1f, emissive: 0xff5a1f, emissiveIntensity: 0.6, roughness: 0.3, clearcoat: 1 }));
+scene.add(point);                                 // toujours là (préparé au chargement), mais minuscule
 
 // ---------- Le modèle de Blender ----------
 const survolables = [];
@@ -259,12 +278,24 @@ function cadrer() {
 cadrer();
 addEventListener('resize', cadrer);
 
+// Où la caméra doit aller (réglé par passages.js) : le point regardé (x, y, z), la distance
+// (1 = tout le monde visible), les angles en degrés, et un décalage de l'image (dx, dy, en part de l'écran).
+export const vue = { x: 0, y: 2.4, z: 0, dist: 1, polaire: 70, azimut: 38, dx: 0, dy: 0 };
+const cam = { ...vue };                       // où elle est vraiment : elle s'approche de vue à chaque image
+
 const souris = { x: 0, y: 0, lisseX: 0, lisseY: 0 };
 const tour = { cible: 0, actuel: 0, elan: 0, glisse: false, dernierX: 0 };
+export const reglages = { tourner: true };    // false dans la salle : la platine ne tourne plus au doigt
+// Remet la platine de face (la pièce ouverte vers la caméra), par le plus court chemin
+export function remettreDeFace() {
+  tour.elan = 0;
+  tour.cible = Math.round(tour.cible / (Math.PI * 2)) * Math.PI * 2;
+}
 const rayon = new THREE.Raycaster();
 const pointeur = new THREE.Vector2(-9, -9);
 
 canvas.addEventListener('pointerdown', e => {
+  if (!reglages.tourner) return;
   tour.glisse = true; tour.dernierX = e.clientX; tour.elan = 0;
   canvas.setPointerCapture(e.pointerId);
 });
@@ -287,6 +318,8 @@ canvas.addEventListener('pointerleave', () => pointeur.set(-9, -9));
 const horloge = new THREE.Clock();
 const DUREE_DEMO = 45;            // démonstration : l'anneau se vide en 45 s, puis se remplit en 1,2 s
 let tempsDemo = 0, remplissage = 1;
+export const minuteur = { demo: true, valeur: 1 };   // demo false : l'anneau va vers valeur (0 = vide)
+export function relancerAnneau() { tempsDemo = 0; minuteur.demo = true; }
 const sphere = new THREE.Spherical();
 const compteur = new URLSearchParams(location.search).has('fps') ? document.body.appendChild(Object.assign(document.createElement('div'), { id: 'fps' })) : null;
 let images = 0, depuis = performance.now();
@@ -304,16 +337,19 @@ function image() {
   souris.lisseX = amortir(souris.lisseX, TELEPHONE ? 0 : souris.x, 0.05);
   souris.lisseY = amortir(souris.lisseY, TELEPHONE ? 0 : souris.y, 0.05);
   const souffle = CALME ? 0 : Math.sin(t * 0.6);
-  sphere.set(distance * (1 + souffle * 0.012),
-    THREE.MathUtils.degToRad(70 + souris.lisseY * 2.5 + souffle * 0.6),
-    THREE.MathUtils.degToRad(38 + souris.lisseX * 4));
+  for (const k in vue) cam[k] = CALME ? vue[k] : amortir(cam[k], vue[k], 0.06);
+  regard.set(cam.x, cam.y, cam.z);
+  sphere.set(distance * cam.dist * (1 + souffle * 0.012),
+    THREE.MathUtils.degToRad(cam.polaire + souris.lisseY * 2.5 + souffle * 0.6),
+    THREE.MathUtils.degToRad(cam.azimut + souris.lisseX * 4));
   camera.position.setFromSpherical(sphere).add(regard);
   camera.lookAt(regard);
+  camera.setViewOffset(innerWidth, innerHeight, -cam.dx * innerWidth, cam.dy * innerHeight, innerWidth, innerHeight);
 
   // L'anneau du temps se vide, puis se remplit d'un coup (démonstration)
   tempsDemo += dt;
   if (tempsDemo > DUREE_DEMO + 2) tempsDemo = 0;
-  const vise = tempsDemo < 1.2 ? 1 : Math.max(0, 1 - (tempsDemo - 1.2) / DUREE_DEMO);
+  const vise = !minuteur.demo ? minuteur.valeur : tempsDemo < 1.2 ? 1 : Math.max(0, 1 - (tempsDemo - 1.2) / DUREE_DEMO);
   remplissage = CALME ? vise : amortir(remplissage, vise, 0.06);
   temps.value = remplissage;
   if (!CALME) anneau.rotation.y += dt * 0.03;
@@ -329,6 +365,15 @@ function image() {
       g.rotation.y = amortir(avant, g.userData.base + g.userData.cible, 0.06);
       if (Math.abs(g.rotation.y - avant) > 1e-4) renderer.shadowMap.needsUpdate = true;
     }
+  }
+
+  appliquerLumieres();
+  {
+    const respire = CALME ? 1 : 1 + 0.25 * Math.sin(t * Math.PI * 2 / 2.4);
+    point.scale.setScalar(Math.max(1e-4, lumiere.point * respire));
+    point.material.emissiveIntensity = 0.4 + 0.5 * respire;
+    point.position.set(camera.position.x, 0, camera.position.z).setLength(1.62);
+    point.position.y = CENTRE_PLANETE;
   }
 
   // Le curseur de l'écran clignote
@@ -349,7 +394,7 @@ function demarrer() { horloge.getDelta(); renderer.setAnimationLoop(image); }
 document.addEventListener('visibilitychange', () => document.hidden ? renderer.setAnimationLoop(null) : demarrer());
 
 // Tout est chargé : on prépare les matières (pas d'à-coup), puis la scène apparaît en fondu
-Promise.all([envPret, modelePret]).then(async () => {
+export const pret = Promise.all([envPret, modelePret]).then(async () => {
   await renderer.compileAsync(scene, camera);
   renderer.shadowMap.needsUpdate = true;
   demarrer();
