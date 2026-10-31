@@ -1,154 +1,131 @@
-/* =========================================================
-   Partage éphémère — le squelette de la page
-   Les réglages communs et la place de chaque bloc dans les salles,
-   comme le plan d'une maison. Le look (couleurs, police, formes,
-   mouvements) est dans minuit.css.
-   ========================================================= */
-
-:root {
-  --haut: max(16px, env(safe-area-inset-top));
-  --bas: max(16px, env(safe-area-inset-bottom));
+﻿/* Disposition des panneaux dans le monde Atelier. Le look reste dans minuit.css. */
+:root { --haut:max(16px,env(safe-area-inset-top)); --bas:max(16px,env(safe-area-inset-bottom)); }
+*, *::before, *::after { box-sizing:border-box; }
+[hidden] { display:none !important; }
+html, body { margin:0; min-height:100%; overflow-x:hidden; }
+body { font-size:16px; line-height:1.45; -webkit-font-smoothing:antialiased; -webkit-tap-highlight-color:transparent; }
+h1,h2,h3,p { margin:0; }
+button,input,textarea { font:inherit; color:inherit; }
+button { cursor:pointer; touch-action:manipulation; }
+svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+.lecteur { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+#scene { position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:pan-y; cursor:grab; }
+.fige #scene { cursor:default; touch-action:none; }
+.app { position:relative; z-index:1; pointer-events:none; }
+.ecran { pointer-events:none; }
+.ecran > :not(#histoire), .texte { pointer-events:auto; }
+html.lenis, html.lenis body { height:auto; }
+.lenis.lenis-smooth { scroll-behavior:auto !important; }
+.lenis.lenis-stopped, html.fige { overflow:hidden; }
+#histoire { position:relative; }
+.temps { min-height:100vh; min-height:100svh; display:flex; align-items:flex-end; padding:0 6vw 12vh; }
+.texte { max-width:520px; }
+#t1 .texte,#t2 .texte { max-width:min(1100px,100%); }
+#t2 { justify-content:flex-end; }
+.accueil-actions { display:grid; gap:10px; width:min(360px,100%); }
+.carte-rejoindre { display:grid; gap:10px; }
+.cases { position:relative; display:flex; gap:6px; }
+.case { flex:1; height:48px; display:grid; place-items:center; }
+.case:nth-child(4) { margin-left:6px; }
+#champ-code { position:absolute; inset:0; width:100%; opacity:0; font-size:16px; caret-color:transparent; }
+.ecran #aide { position:fixed; inset:auto 16px max(20px,env(safe-area-inset-bottom)); text-align:center; pointer-events:none; }
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:44px; padding:0 16px; border:0; white-space:nowrap; }
+.btn:disabled { opacity:.6; cursor:wait; }
+.salle { position:fixed; inset:0; height:100dvh; padding:var(--haut) 16px var(--bas); display:grid; gap:10px 20px;
+  grid-template-columns:280px minmax(0,1fr) 380px; grid-template-rows:auto auto auto minmax(0,1fr) auto;
+  grid-template-areas:'tete tete tete' 'code . bandeau' 'code . info' 'etat . fil' 'invites . bas'; }
+.zone-tete { grid-area:tete; } .zone-code { grid-area:code; align-self:start; } .zone-etat { grid-area:etat; align-self:start; }
+.zone-invites { grid-area:invites; align-self:start; } .zone-bandeau { grid-area:bandeau; } .zone-info { grid-area:info; }
+.zone-fil { grid-area:fil; } .zone-bas { grid-area:bas; }
+.salle-tete { display:flex; flex-wrap:wrap; gap:8px 10px; align-items:center; padding:8px 12px; }
+.salle-tete h2 { flex:1; }
+.salle-tete .pastille { margin-right:auto; }
+.btn-sortie { width:auto; margin-left:auto; }
+.carte-code { padding:16px; }
+.plaques { display:flex; }
+.plaques span:nth-child(4) { margin-left:.28em; }
+.partage-details { margin-top:10px; }
+.partage-details summary { cursor:pointer; min-height:44px; display:flex; align-items:center; gap:8px; }
+.partage-details summary::before { content:'+'; }
+.partage-details[open] summary::before { content:'−'; }
+.partage-details .aide { margin:10px 0; }
+.duo { display:grid; gap:8px; }
+.qr { width:148px; height:148px; padding:4px; }
+.qr svg { display:block; width:100%; height:100%; }
+.etat { display:flex; gap:10px; align-items:center; padding:12px; }
+.anneau-etat { width:24px; height:24px; }
+.invites { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:12px; }
+#liste-invites { display:contents; }
+.pers { width:32px; height:32px; display:grid; place-items:center; }
+.bandeau, .info { padding:12px 14px; }
+.fil { min-height:0; overflow-y:auto; overscroll-behavior:contain; display:flex; flex-direction:column; gap:10px; padding:12px; }
+.msg { display:flex; flex-direction:column; gap:10px; flex:none; }
+.msg-tete { display:flex; justify-content:space-between; gap:8px; }
+.msg-corps { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.msg-texte,.msg-fichier { flex:1; min-width:0; overflow-wrap:anywhere; }
+.msg-texte { white-space:pre-wrap; }
+.msg-fichier { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.msg-fichier small { display:block; }
+.ft { width:36px; height:36px; display:grid; place-items:center; flex:none; }
+.progres { display:flex; align-items:center; gap:8px; }
+.barre { flex:1; overflow:hidden; }
+.barre b { display:block; height:100%; }
+.msg-actions { display:flex; gap:8px; }
+.bas { display:flex; flex-direction:column; gap:8px; padding:10px; }
+.depot { text-align:center; }
+.compose { display:flex; gap:8px; align-items:flex-end; }
+.compose textarea { flex:1; min-width:0; resize:none; height:48px; max-height:120px; overflow-y:auto; }
+.btn-envoi { width:auto; height:48px; padding:0 12px; }
+.rond { width:44px; height:48px; display:grid; place-items:center; border:0; flex:none; }
+.fermee { position:fixed; inset:0; display:flex; align-items:flex-end; padding:0 6vw 12vh; }
+.fermee-panneau { width:min(440px,100%); display:grid; gap:12px; }
+.fermee-boutons { display:grid; gap:8px; margin-top:8px; }
+.confirmation { width:min(440px,calc(100% - 32px)); padding:20px; margin:auto; border:0; }
+.confirmation p { margin:8px 0 20px; }
+.conf-boutons { display:grid; gap:8px; }
+.conf-boutons .btn { min-height:48px; }
+.alerte-inactivite { position:fixed; z-index:30; top:calc(var(--haut) + 68px); left:16px; right:16px; margin:auto; max-width:420px;
+  padding:14px; display:grid; grid-template-columns:auto 1fr; align-items:center; gap:12px; }
+.btn-rester { grid-column:1/-1; height:48px; }
+.toast { position:fixed; z-index:40; left:50%; top:var(--haut); width:max-content; max-width:calc(100% - 32px); padding:12px 20px;
+  opacity:0; transform:translate(-50%,-8px); pointer-events:none; }
+.toast.visible { opacity:1; transform:translate(-50%,0); }
+#chargement { position:fixed; inset:0; z-index:50; display:grid; place-content:center; justify-items:center; gap:14px; pointer-events:none; }
+#chargement.fini { opacity:0; visibility:hidden; }
+#piste { width:120px; height:2px; }
+#barre { width:0; height:100%; }
+#fps { position:fixed; left:12px; bottom:12px; z-index:10; padding:8px; }
+@media(max-width:899px) {
+  .temps { padding:0 16px max(64px,calc(env(safe-area-inset-bottom) + 48px)); }
+  #t2 { justify-content:flex-start; }
+  .salle { gap:6px; grid-template-columns:minmax(0,1fr); grid-template-rows:auto auto auto auto minmax(60px,1fr) auto minmax(60px,28dvh) auto;
+    grid-template-areas:'tete' 'code' 'etat' 'invites' '.' 'bandeau' 'fil' 'bas'; }
+  .salle-invite { grid-template-rows:auto auto minmax(80px,1fr) auto auto minmax(60px,28dvh) auto;
+    grid-template-areas:'tete' 'etat' '.' 'bandeau' 'info' 'fil' 'bas'; }
+  .salle-tete { padding:6px 10px; gap:4px 8px; }
+  .salle-tete .pastille { flex-basis:100%; }
+  .carte-code { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 12px; position:relative; z-index:3; }
+  .partage-details { margin:0; }
+  .partage-details[open] { position:absolute; top:0; right:0; width:100%; max-height:70dvh; overflow:auto; padding:12px; }
+  .partage-details[open] .qr { float:left; margin-right:12px; }
+  .partage-details[open] .duo { clear:both; padding-top:10px; grid-template-columns:1fr 1fr; }
+  .etat { padding:6px 10px; }
+  .invites { padding:4px 10px; }
+  .bandeau,.info { padding:8px 12px; }
+  .bas { padding:6px; }
+  .depot { display:none; }
+  .fermee { padding:16px 16px var(--bas); justify-content:center; }
+  .confirmation { margin:auto auto var(--bas); }
 }
-
-*, *::before, *::after { box-sizing: border-box; }
-[hidden] { display: none !important; }
-
-html { min-height: 100%; }
-body {
-  margin: 0;
-  min-height: 100dvh;
-  font-size: 16px;
-  line-height: 1.45;
-  -webkit-font-smoothing: antialiased;
-  -webkit-tap-highlight-color: transparent;
+@media(min-width:900px) {
+  .zone-code { grid-row:2 / -1; grid-column:1; }
+  .zone-etat { align-self:end; }
+  .salle-invite .zone-etat { grid-row:2; grid-column:1; align-self:start; }
 }
-
-h1, h2, h3, p { margin: 0; }
-button, input, textarea { font: inherit; color: inherit; }
-button { cursor: pointer; touch-action: manipulation; } /* pas d'attente du double-toucher sur iPhone */
-svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
-
-.lecteur { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-
-/* ---------- Cadre général ---------- */
-.app {
-  max-width: 1080px;
-  margin: 0 auto;
-  min-height: 100dvh;
-  padding: var(--haut) 16px var(--bas);
-  display: flex;
-  flex-direction: column;
+@media(max-width:899px) and (max-height:700px) {
+  .salle { padding-top:8px; padding-bottom:8px; gap:4px; grid-template-rows:auto auto auto auto minmax(16px,1fr) auto minmax(44px,23dvh) auto; }
+  .salle-invite { grid-template-rows:auto auto minmax(16px,1fr) auto auto minmax(44px,23dvh) auto; }
 }
-.ecran { flex: 1; display: flex; flex-direction: column; }
-
-/* ---------- Boutons : la forme commune ---------- */
-.btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  width: 100%; min-height: 44px; padding: 0 22px;
-  border-radius: 999px; border: 0;
-  white-space: nowrap;
-}
-.btn:disabled { opacity: .6; cursor: wait; }
-
-/* =========================================================
-   ÉCRANS 2 et 3 : LES SALLES (grille qui se réorganise PC / iPhone)
-   ========================================================= */
-body[data-ecran="hote"] .app,
-body[data-ecran="invite"] .app { height: 100dvh; min-height: 600px; }
-
-.salle {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 12px;
-  min-height: 0;
-}
-.salle-hote {
-  grid-template-rows: auto auto auto auto auto minmax(90px, 1fr) auto;
-  grid-template-areas: "tete" "code" "etat" "invites" "bandeau" "fil" "bas";
-}
-.salle-invite {
-  grid-template-rows: auto auto auto auto minmax(90px, 1fr) auto;
-  grid-template-areas: "tete" "etat" "bandeau" "info" "fil" "bas";
-}
-.zone-tete { grid-area: tete; } .zone-code { grid-area: code; } .zone-etat { grid-area: etat; }
-.zone-invites { grid-area: invites; } .zone-bandeau { grid-area: bandeau; } .zone-info { grid-area: info; }
-.zone-fil { grid-area: fil; } .zone-bas { grid-area: bas; }
-
-/* L'en-tête : logo et titre à gauche, bouton de sortie à droite */
-.salle-tete { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
-.salle-tete h2 { flex: 1; white-space: nowrap; }
-.salle-tete .pastille { flex-basis: 100%; }
-.btn-sortie { width: auto; flex: none; margin-left: auto; } /* reste à droite, même s'il passe à la ligne */
-
-/* Le bloc du code : le code et l'aide à gauche, le QR à droite, les deux boutons dessous */
-.carte-code {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: "code qr" "aide qr" "duo duo";
-  align-items: center;
-}
-.plaques { grid-area: code; display: flex; }
-.qr { grid-area: qr; }
-.aide { grid-area: aide; align-self: start; }
-.duo { grid-area: duo; display: flex; gap: 8px; }
-.duo .btn { flex: 1; min-width: 0; padding: 0 12px; }
-
-.etat { display: flex; align-items: center; gap: 12px; }
-.etat p { min-width: 0; }
-
-/* Le fil : messages et fichiers, qui défile tout seul */
-.fil {
-  min-height: 0; overflow-y: auto;
-  display: flex; flex-direction: column; gap: 8px;
-  overscroll-behavior: contain;
-}
-.msg { display: flex; flex-direction: column; }
-.msg-corps { display: flex; gap: 12px; align-items: center; }
-.msg-texte, .msg-fichier { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.msg-texte { white-space: pre-wrap; }
-.msg-fichier small { display: block; }
-.progres { display: flex; align-items: center; gap: 12px; }
-.barre { flex: 1; overflow: hidden; }
-.barre b { display: block; height: 100%; }
-.msg-actions { display: flex; gap: 8px; }
-
-/* Barre du bas */
-.bas { display: flex; flex-direction: column; gap: 8px; }
-.depot { display: none; }
-.compose { display: flex; gap: 8px; align-items: flex-end; }
-.compose textarea { flex: 1; min-width: 0; resize: none; overflow-y: auto; }
-.btn-envoi { width: auto; flex: none; }
-
-/* =========================================================
-   VERSION PC (écran large)
-   ========================================================= */
-@media (min-width: 900px) {
-  .app { padding: 40px 40px; }
-
-  /* Salle de l'hôte : colonne du code à gauche, fil à droite */
-  .salle-hote {
-    grid-template-columns: 340px minmax(0, 1fr);
-    grid-template-rows: auto auto auto auto 1fr auto;
-    grid-template-areas:
-      "tete    tete"
-      "code    bandeau"
-      "code    fil"
-      "etat    fil"
-      "invites fil"
-      ".       bas";
-    column-gap: 32px; row-gap: 12px;
-  }
-  .salle-hote .zone-code, .salle-hote .zone-invites { align-self: start; }
-  .carte-code { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "code code" "qr aide" "duo duo"; }
-  .duo { flex-direction: column; }
-
-  /* Salle de l'invité : une colonne centrée */
-  .salle-invite { max-width: 780px; width: 100%; margin: 0 auto; }
-
-  .depot { display: block; }
-}
-
-/* Moins d'animations si l'appareil le demande : tout s'affiche directement */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; transition-duration: .01ms !important; }
+@media(prefers-reduced-motion:reduce) {
+  *,*::before,*::after { animation-duration:.01ms !important; transition-duration:.01ms !important; }
 }

@@ -58,12 +58,12 @@ const estInstallee = window.matchMedia("(display-mode: standalone)").matches || 
 function afficherEcran(nom) {
   document.querySelectorAll(".ecran").forEach((section) => {
     section.hidden = section.dataset.nom !== nom;
-    section.classList.remove("dissout");
   });
   document.body.dataset.ecran = nom;
   etat.ecran = nom;
   $("alerte-inactivite").hidden = true;
   window.scrollTo(0, 0);
+  document.dispatchEvent(new CustomEvent("partage:ecran", { detail: { nom } }));
 }
 
 function formaterCode(code) {

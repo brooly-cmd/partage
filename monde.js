@@ -1,7 +1,7 @@
-// Le monde 3D (mission 20) : la platine, la planète en nacre, l'anneau du temps et l'atelier.
+// Le monde 3D : la pièce de l'atelier seule.
 // Les objets viennent de 3d/atelier.glb (fabriqué dans Blender par 3d/fabrique-atelier.py) ;
 // ici on leur donne leurs vraies matières, la lumière et le mouvement.
-// Mission 21 : passages.js pilote la caméra (vue), les lumières (lumiere) et l'anneau (minuteur).
+// Mission 21 : passages.js pilote la caméra (vue) et les lumières (lumiere).
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
@@ -11,6 +11,8 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { creerObjets } from './objets.js';
+import { creerDecor } from './decor.js';
 
 const DOSSIER = '3d/';
 const TELEPHONE = matchMedia('(pointer: coarse)').matches;
@@ -102,7 +104,6 @@ const nacre = () => {
 const matieres = {
   laque: new THREE.MeshPhysicalMaterial({ color: 0x111112, roughness: 0.2, clearcoat: 1, clearcoatRoughness: 0.04 }),
   alu: new THREE.MeshPhysicalMaterial({ color: 0xc8cacd, metalness: 1, roughness: 0.32 }),
-  nacre: nacre(),
   parquet: new THREE.MeshStandardMaterial({ map: bois, color: 0xd9cfc4, roughness: 0.62 }),
   bois: new THREE.MeshStandardMaterial({ map: bois, color: 0xe2b88e, roughness: 0.5 }),
   platre: new THREE.MeshStandardMaterial({ map: platre, color: 0xf1efe9, roughness: 0.95 }),
@@ -115,75 +116,38 @@ const matieres = {
   cadre: new THREE.MeshStandardMaterial({ color: 0xf6f4ef, roughness: 0.4 }),
   noir: new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5 }),
   terre: new THREE.MeshStandardMaterial({ color: 0xc9744f, roughness: 0.85 }),
-  feuille: new THREE.MeshPhysicalMaterial({ color: 0x2f5d3a, roughness: 0.5, sheen: 0.4, sheenColor: 0x9fd6a8 }),
+  feuille: new THREE.MeshPhysicalMaterial({ color: 0x3d7a4c, roughness: 0.42, sheen: 0.5, sheenColor: 0xb8e6b0, side: THREE.DoubleSide }),
 };
-
-// ---------- La planète et l'anneau du temps ----------
-const CENTRE_PLANETE = 1.76;
-const planete = new THREE.Mesh(new THREE.SphereGeometry(1.45, 128, 64), matieres.nacre);
-planete.position.y = CENTRE_PLANETE;
-monde.add(planete);
-
-// L'anneau est un disque épais et troué (comme un CD) ; une part se cache selon le temps qui reste.
-const forme = new THREE.Shape().absarc(0, 0, 2.3, 0, Math.PI * 2);
-forme.holes.push(new THREE.Path().absarc(0, 0, 1.78, 0, Math.PI * 2, true));
-const disque = new THREE.ExtrudeGeometry(forme, { depth: 0.02, bevelEnabled: true, bevelThickness: 0.008,
-  bevelSize: 0.008, bevelSegments: 4, curveSegments: 160 });
-const temps = { value: 1 };                     // 1 = 30 minutes, 0 = salle fermée
-function partDuDisque(materiau, plein) {
-  materiau.side = THREE.DoubleSide;
-  const avant = materiau.onBeforeCompile;
-  materiau.customProgramCacheKey = () => 'anneau-' + plein;
-  materiau.onBeforeCompile = s => {
-    avant(s);
-    s.uniforms.uTemps = temps;
-    s.vertexShader = s.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec2 vAnneau;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvAnneau = position.xy;');
-    s.fragmentShader = s.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec2 vAnneau;\nuniform float uTemps;')
-      .replace('void main() {', `void main() {
-        float a = fract(atan(-vAnneau.x, vAnneau.y) / 6.2831853 + 1.0);
-        if (${plein ? 'a > uTemps' : 'a < uTemps'}) discard;`);
-  };
-  const m = new THREE.Mesh(disque, materiau);
-  m.rotation.x = -Math.PI / 2;
-  return m;
-}
-const anneau = new THREE.Group();
-anneau.position.y = CENTRE_PLANETE;
-anneau.rotation.set(0.12, 0, -0.08);
-const anneauPlein = partDuDisque(nacre(), true);
-const anneauVide = partDuDisque(new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.3, metalness: 0.2,
-  transparent: true, opacity: 0.16, depthWrite: false }), false);
-anneau.add(anneauPlein, anneauVide);
-monde.add(anneau);
+const contenus = new THREE.Group();
+monde.add(contenus);
+export const objets = creerObjets(contenus, renderer, nacre);
+const decor = creerDecor(scene, monde, { telephone: TELEPHONE, calme: CALME });
 
 // ---------- La lumière : la photo HDR du studio + une lumière douce ----------
 const soleil = new THREE.DirectionalLight(0xfff6ec, 1.6);
-soleil.position.set(4.5, 9, 5.5);
+soleil.position.set(4.5, 12.6, 5.5);
+soleil.target.position.set(0, 3.6, 0);
 soleil.castShadow = true;
 soleil.shadow.mapSize.set(TELEPHONE ? 1024 : 2048, TELEPHONE ? 1024 : 2048);
-Object.assign(soleil.shadow.camera, { left: -4, right: 4, top: 5, bottom: -3, near: 1, far: 25 });
+Object.assign(soleil.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 1, far: 25 });
 soleil.shadow.bias = -0.0004;
 soleil.shadow.normalBias = 0.02;
 soleil.shadow.radius = 4;
-monde.add(soleil, soleil.target);   // la lumière tourne avec la platine : l'ombre reste la même
+monde.add(soleil, soleil.target);   // la lumière tourne avec la pièce : l'ombre reste la même
 const lampe = new THREE.SpotLight(0xffc98a, 0, 3.5, 0.75, 0.6, 1.5);   // allumée la nuit
-const arriere = new THREE.PointLight(0xff6a3d, 0, 9, 1.5);               // lueur orange de la nuit (PC)
+const arriere = new THREE.PointLight(0x7f95c4, 0, 9, 1.5);               // reflet froid derrière la pièce, la nuit (PC)
 arriere.position.set(-3, 5.5, -5);
 scene.add(arriere);
 
 // Les lumières de la pièce, réglées par passages.js :
-// piece 0 → 1 = la lampe et l'écran s'allument (on entre) ; allume 1 → 0 = la pièce s'éteint (salle fermée) ;
-// point 0 → 1 = le point orange qui respire apparaît.
-export const lumiere = { piece: 0, allume: 1, point: 0 };
+// piece 0 → 1 = la lampe et l'écran s'allument (on entre) ; allume 1 → 0 = la pièce s'éteint (salle fermée).
+export const lumiere = { piece: 0, allume: 1, alerte: 0 };
 const base = {};                                  // les valeurs du jour ou de la nuit, avant ces réglages
 function reglerJourNuit() {
   const nuit = NUIT.matches;
-  scene.background = new THREE.Color(nuit ? 0x0d0d0d : 0xecebe6);
-  Object.assign(base, { env: nuit ? 0.28 : 1, soleil: nuit ? (TELEPHONE ? 0 : 0.35) : 1.6,
-    lampe: nuit ? 9 : 0, lampeSalle: nuit ? 11 : 6, ampoule: nuit ? 4 : 0.2, vitre: nuit ? 0.7 : 1.1 });
+  decor.regler(nuit);
+  Object.assign(base, { env: nuit ? 0.28 : 1, soleil: nuit ? (TELEPHONE ? 0 : 0.15) : 1.0,
+    lampe: nuit ? 4 : 0, lampeSalle: nuit ? 5 : 3, ampoule: nuit ? 2 : 0.2, vitre: nuit ? 0.7 : 1.1 });
   soleil.color.set(nuit ? 0xb8c4ff : 0xfff6ec);
   arriere.intensity = nuit && !TELEPHONE ? 8 : 0;
   matieres.vitre.emissive.set(nuit ? 0x1c2a4a : 0xdfe9f2);
@@ -192,18 +156,14 @@ function appliquerLumieres() {
   const { piece, allume } = lumiere;
   scene.environmentIntensity = base.env * (0.55 + 0.45 * allume);
   soleil.intensity = base.soleil * (0.6 + 0.4 * allume);
-  lampe.intensity = amortir(base.lampe, base.lampeSalle, piece) * allume;
-  matieres.ampoule.emissiveIntensity = amortir(base.ampoule, 4, piece) * allume;
+  const vacille = CALME ? 1 : 1 - lumiere.alerte * (0.04 + 0.04 * Math.sin(horloge.elapsedTime * 3));
+  lampe.intensity = amortir(base.lampe, base.lampeSalle, piece) * allume * vacille;
+  matieres.ampoule.emissiveIntensity = amortir(base.ampoule, 2.5, piece) * allume * vacille;
   matieres.ecran.emissiveIntensity = (0.7 + 0.7 * piece) * allume;
   matieres.vitre.emissiveIntensity = base.vitre * (0.5 + 0.5 * allume);
 }
 reglerJourNuit();
 NUIT.addEventListener('change', reglerJourNuit);
-
-// Le point orange de « Salle fermée » : il respire entre la planète et l'anneau, du côté de la caméra
-const point = new THREE.Mesh(new THREE.SphereGeometry(0.07, 48, 24),
-  new THREE.MeshPhysicalMaterial({ color: 0xff5a1f, emissive: 0xff5a1f, emissiveIntensity: 0.6, roughness: 0.3, clearcoat: 1 }));
-scene.add(point);                                 // toujours là (préparé au chargement), mais minuscule
 
 // ---------- Le modèle de Blender ----------
 const survolables = [];
@@ -214,14 +174,20 @@ function recentrer(groupe) {                       // pour qu'un objet tourne su
 }
 modelePret.then(gltf => {
   const atelier = gltf.scene;
+  const apercus = new Set();                     // les matières d'aperçu de Blender, remplacées par les vraies
   atelier.traverse(o => {
     if (!o.isMesh) return;
     const nom = o.material.name;
-    if (matieres[nom]) o.material = nom === 'nacre' ? nacre() : matieres[nom];
+    if (nom === 'nacre' || matieres[nom]) {
+      apercus.add(o.material);
+      o.material = nom === 'nacre' ? nacre() : matieres[nom];
+    }
     o.castShadow = !['vitre', 'tapis', 'ecran'].includes(nom);
     o.receiveShadow = true;
   });
+  apercus.forEach(m => m.dispose());
   monde.add(atelier);
+  atelier.getObjectByName('Piece').add(contenus);  // les objets suivent le repère de la pièce
   for (const nom of ['Ordinateur', 'Lampe', 'CD', 'Plante']) {
     const g = atelier.getObjectByName(nom);
     recentrer(g);
@@ -233,7 +199,8 @@ modelePret.then(gltf => {
   const ampoule = atelier.getObjectByName('Lampe_ampoule');
   const abatjour = atelier.getObjectByName('Lampe_abatjour');
   ampoule.getWorldPosition(lampe.position);
-  const sens = new THREE.Vector3(0, 0, 1).applyQuaternion(abatjour.getWorldQuaternion(new THREE.Quaternion()));
+  // l'abat-jour est un cône dont la pointe (l'ampoule) est en haut (+Y) : la lumière sort par le côté large (-Y)
+  const sens = new THREE.Vector3(0, -1, 0).applyQuaternion(abatjour.getWorldQuaternion(new THREE.Quaternion()));
   lampe.target.position.copy(lampe.position).addScaledVector(sens, 1.2);
   monde.add(lampe, lampe.target);
 });
@@ -244,7 +211,7 @@ if (!TELEPHONE) {
   const cible = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
   composer = new EffectComposer(renderer, cible);
   composer.addPass(new RenderPass(scene, camera));
-  composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth || 1, innerHeight || 1), 0.35, 0.5, 0.92));
+  composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth || 1, innerHeight || 1), 0.2, 0.4, 0.95));
   composer.addPass(new OutputPass());
   composer.addPass(new ShaderPass({
     uniforms: { tDiffuse: { value: null }, uTemps: { value: 0 } },
@@ -285,8 +252,18 @@ const cam = { ...vue };                       // où elle est vraiment : elle s'
 
 const souris = { x: 0, y: 0, lisseX: 0, lisseY: 0 };
 const tour = { cible: 0, actuel: 0, elan: 0, glisse: false, dernierX: 0 };
-export const reglages = { tourner: true };    // false dans la salle : la platine ne tourne plus au doigt
-// Remet la platine de face (la pièce ouverte vers la caméra), par le plus court chemin
+export const reglages = { tourner: true, zoom: false };   // dans la salle : la pièce ne tourne plus au doigt, mais on peut zoomer
+const zoom = { cible: 1, actuel: 1 };         // 1 = le cadrage de la salle ; plus petit = plus près
+const doigts = new Map();
+const bornerZoom = z => THREE.MathUtils.clamp(z, 0.5, 1.6);
+canvas.addEventListener('wheel', e => {
+  if (!reglages.zoom) return;
+  e.preventDefault();
+  zoom.cible = bornerZoom(zoom.cible * Math.exp(e.deltaY * 0.0012));
+}, { passive: false });
+canvas.addEventListener('dblclick', () => { if (reglages.zoom) zoom.cible = 1; });
+const ecartDoigts = () => { const [a, b] = [...doigts.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+// Remet la pièce de face (la pièce ouverte vers la caméra), par le plus court chemin
 export function remettreDeFace() {
   tour.elan = 0;
   tour.cible = Math.round(tour.cible / (Math.PI * 2)) * Math.PI * 2;
@@ -295,6 +272,7 @@ const rayon = new THREE.Raycaster();
 const pointeur = new THREE.Vector2(-9, -9);
 
 canvas.addEventListener('pointerdown', e => {
+  if (reglages.zoom) { doigts.set(e.pointerId, { x: e.clientX, y: e.clientY }); canvas.setPointerCapture(e.pointerId); }
   if (!reglages.tourner) return;
   tour.glisse = true; tour.dernierX = e.clientX; tour.elan = 0;
   canvas.setPointerCapture(e.pointerId);
@@ -303,32 +281,33 @@ canvas.addEventListener('pointermove', e => {
   souris.x = (e.clientX / innerWidth) * 2 - 1;
   souris.y = (e.clientY / innerHeight) * 2 - 1;
   pointeur.set(souris.x, -souris.y);
+  if (doigts.has(e.pointerId)) {                // deux doigts qui s'écartent ou se rapprochent
+    const avant = doigts.size === 2 ? ecartDoigts() : 0;
+    doigts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (avant) zoom.cible = bornerZoom(zoom.cible * avant / ecartDoigts());
+  }
   if (!tour.glisse) return;
   const dx = e.clientX - tour.dernierX;
   tour.dernierX = e.clientX;
   tour.cible += dx * 0.006;
   tour.elan = dx * 0.006;
 });
-const lacher = () => { tour.glisse = false; };
+const lacher = e => { tour.glisse = false; doigts.delete(e.pointerId); };
 canvas.addEventListener('pointerup', lacher);
 canvas.addEventListener('pointercancel', lacher);
 canvas.addEventListener('pointerleave', () => pointeur.set(-9, -9));
 
 // ---------- La boucle (s'arrête quand la page est cachée) ----------
 const horloge = new THREE.Clock();
-const DUREE_DEMO = 45;            // démonstration : l'anneau se vide en 45 s, puis se remplit en 1,2 s
-let tempsDemo = 0, remplissage = 1;
-export const minuteur = { demo: true, valeur: 1 };   // demo false : l'anneau va vers valeur (0 = vide)
-export function relancerAnneau() { tempsDemo = 0; minuteur.demo = true; }
 const sphere = new THREE.Spherical();
 const compteur = new URLSearchParams(location.search).has('fps') ? document.body.appendChild(Object.assign(document.createElement('div'), { id: 'fps' })) : null;
 let images = 0, depuis = performance.now();
 
 function image() {
-  const dt = Math.min(horloge.getDelta(), 0.05);
+  horloge.getDelta();
   const t = horloge.elapsedTime;
 
-  // Le doigt ou la souris fait tourner la platine, avec un peu d'élan
+  // Le doigt ou la souris fait tourner la pièce, avec un peu d'élan
   if (!tour.glisse && !CALME) { tour.cible += tour.elan; tour.elan *= 0.92; }
   tour.actuel = amortir(tour.actuel, tour.cible, 0.08);
   monde.rotation.y = tour.actuel + (CALME ? 0 : Math.sin(t * 0.25) * 0.05);
@@ -339,20 +318,14 @@ function image() {
   const souffle = CALME ? 0 : Math.sin(t * 0.6);
   for (const k in vue) cam[k] = CALME ? vue[k] : amortir(cam[k], vue[k], 0.06);
   regard.set(cam.x, cam.y, cam.z);
-  sphere.set(distance * cam.dist * (1 + souffle * 0.012),
+  if (!reglages.zoom) zoom.cible = 1;
+  zoom.actuel = amortir(zoom.actuel, zoom.cible, 0.1);
+  sphere.set(distance * cam.dist * zoom.actuel * (1 + souffle * 0.012),
     THREE.MathUtils.degToRad(cam.polaire + souris.lisseY * 2.5 + souffle * 0.6),
     THREE.MathUtils.degToRad(cam.azimut + souris.lisseX * 4));
   camera.position.setFromSpherical(sphere).add(regard);
   camera.lookAt(regard);
   camera.setViewOffset(innerWidth, innerHeight, -cam.dx * innerWidth, cam.dy * innerHeight, innerWidth, innerHeight);
-
-  // L'anneau du temps se vide, puis se remplit d'un coup (démonstration)
-  tempsDemo += dt;
-  if (tempsDemo > DUREE_DEMO + 2) tempsDemo = 0;
-  const vise = !minuteur.demo ? minuteur.valeur : tempsDemo < 1.2 ? 1 : Math.max(0, 1 - (tempsDemo - 1.2) / DUREE_DEMO);
-  remplissage = CALME ? vise : amortir(remplissage, vise, 0.06);
-  temps.value = remplissage;
-  if (!CALME) anneau.rotation.y += dt * 0.03;
 
   // L'objet survolé tourne doucement
   if (!TELEPHONE && survolables.length) {
@@ -368,13 +341,8 @@ function image() {
   }
 
   appliquerLumieres();
-  {
-    const respire = CALME ? 1 : 1 + 0.25 * Math.sin(t * Math.PI * 2 / 2.4);
-    point.scale.setScalar(Math.max(1e-4, lumiere.point * respire));
-    point.material.emissiveIntensity = 0.4 + 0.5 * respire;
-    point.position.set(camera.position.x, 0, camera.position.z).setLength(1.62);
-    point.position.y = CENTRE_PLANETE;
-  }
+  decor.image(t, lumiere.allume, camera.position.distanceTo(regard));
+  objets.image(t);
 
   // Le curseur de l'écran clignote
   const visible = Math.floor(t * 1.6) % 2 === 0;

@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f2f2f0" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#e4e1db" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0a0a0b" media="(prefers-color-scheme: dark)">
   <title>Partage éphémère</title>
   <!-- Pour s'installer comme une app : carte d'identité, icône et nom sur l'écran d'accueil -->
   <link rel="manifest" href="manifest.webmanifest">
@@ -15,70 +15,70 @@
   <meta name="apple-mobile-web-app-title" content="Vanishra">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=23">
-  <link rel="stylesheet" href="minuit.css?v=23">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=25">
+  <link rel="stylesheet" href="minuit.css?v=25">
+  <script type="importmap">
+  {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+    "gsap":"https://cdn.jsdelivr.net/npm/gsap@3.12.5/index.js","gsap/ScrollTrigger":"https://cdn.jsdelivr.net/npm/gsap@3.12.5/ScrollTrigger.js",
+    "lenis":"https://cdn.jsdelivr.net/npm/lenis@1.1.0/dist/lenis.mjs"}}
+  </script>
 </head>
 <body data-ecran="accueil">
 
+<canvas id="scene" aria-label="Une petite pièce d’atelier vue en biais"></canvas>
+<div id="chargement" role="status" aria-live="polite">
+  <div id="pourcent">0 %</div><div id="piste"><div id="barre"></div></div>
+</div>
 <main class="app">
 
   <!-- ============ ÉCRAN 1 : ACCUEIL ============ -->
   <section class="ecran accueil" id="ecran-accueil" data-nom="accueil">
-    <div class="accueil-gauche">
-      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
-        <circle class="anneau" cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"
-                stroke-dasharray="50 69.1" transform="rotate(-90 16 16)"/>
-        <circle cx="16" cy="16" r="3.5" fill="currentColor"/>
-      </svg>
-      <h1 class="titre">Partage<br>éphémère</h1>
-      <p class="sous-titre">Envoie du texte et des fichiers, sans compte. Tout disparaît à la fermeture.</p>
-      <button class="btn btn-principal btn-creer" id="btn-creer" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-        Créer une salle
-      </button>
-    </div>
-
-    <div class="accueil-droite">
-      <div class="separateur"><span>ou</span></div>
-
-      <form class="carte-rejoindre" id="form-rejoindre" novalidate>
-        <label for="champ-code" class="etiquette">Code à 6 chiffres</label>
-        <div class="cases" id="cases">
-          <span class="case"></span><span class="case"></span><span class="case"></span>
-          <span class="case"></span><span class="case"></span><span class="case"></span>
-          <input id="champ-code" type="text" inputmode="numeric" pattern="[0-9]*"
-                 autocomplete="one-time-code" maxlength="6" spellcheck="false"
-                 aria-describedby="erreur-code">
+    <div id="histoire">
+      <section class="temps" id="t1"><div class="texte">
+        <h1 class="titre">Partage <em>éphémère</em></h1>
+        <p class="sous-titre">Envoie du texte et des fichiers, sans compte. Tout disparaît à la fermeture.</p>
+      </div></section>
+      <section class="temps" id="t2"><div class="texte"><p class="grand">Tout disparaît à la fermeture.</p></div></section>
+      <section class="temps" id="t3"><div class="texte panneau accueil-actions">
+        <button class="btn btn-principal" id="btn-creer" type="button">Créer une salle</button>
+        <p class="separateur">ou</p>
+        <form class="carte-rejoindre" id="form-rejoindre" novalidate>
+          <label for="champ-code" class="etiquette">Code à 6 chiffres</label>
+          <div class="cases" id="cases">
+            <span class="case"></span><span class="case"></span><span class="case"></span>
+            <span class="case"></span><span class="case"></span><span class="case"></span>
+            <input id="champ-code" type="text" inputmode="numeric" pattern="[0-9]*"
+                   autocomplete="one-time-code" maxlength="6" spellcheck="false" aria-describedby="erreur-code">
+          </div>
+          <p class="erreur" id="erreur-code" role="alert" hidden></p>
+          <button class="btn btn-principal" type="submit">Rejoindre</button>
+        </form>
+        <div class="encart-installation" id="encart-ios" hidden>
+          <p>Installer l'app : touche Partager, puis Sur l'écran d'accueil.</p>
         </div>
-        <p class="erreur" id="erreur-code" role="alert" hidden></p>
-        <button class="btn btn-principal" type="submit">Rejoindre</button>
-      </form>
-
-      <div class="encart-installation" id="encart-ios" hidden>
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>
-        <p>Installer l'app : touche Partager, puis Sur l'écran d'accueil.</p>
-      </div>
-      <button class="btn btn-second btn-installer" id="btn-installer" type="button" hidden>Installer l'app</button>
+        <button class="btn btn-second" id="btn-installer" type="button" hidden>Installer l'app</button>
+        <p class="pied">Aucun compte. Aucun stockage en ligne.</p>
+      </div></section>
     </div>
-
-    <p class="pied">Aucun compte. Aucun stockage en ligne.</p>
+    <p id="aide">Fais défiler · glisse pour faire tourner la pièce</p>
   </section>
 
   <!-- ============ ÉCRAN 2 : SALLE DE L'HÔTE ============ -->
   <section class="ecran salle salle-hote" id="ecran-hote" data-nom="hote" hidden>
     <header class="salle-tete zone-tete">
       <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
-        <circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"
-                stroke-dasharray="50 69.1" transform="rotate(-90 16 16)"/>
-        <circle cx="16" cy="16" r="3.5" fill="currentColor"/>
-      </svg>
+        <circle cx="16" cy="16" r="9.5" fill="none" stroke="currentColor" stroke-opacity=".22" stroke-width="9"/>
+        <circle cx="16" cy="16" r="9.5" fill="none" stroke="currentColor" stroke-width="9" stroke-dasharray="43 59.7" transform="rotate(-90 16 16)"/>
+      </svg><span class="lecteur">Partage éphémère</span>
       <h2>Ta salle</h2>
       <button class="btn btn-rouge btn-sortie" id="btn-fermer" type="button">Fermer la salle</button>
     </header>
 
     <div class="carte-code zone-code">
       <div class="plaques" id="plaques-hote" role="img" aria-label="Code de la salle : 482 915"></div>
+      <details class="partage-details" id="partage-salle" open>
+      <summary>QR code</summary>
       <div class="qr" id="qr" role="img" aria-label="QR code de la salle"></div>
       <p class="aide">Les invités scannent ce QR code avec l'appareil photo de leur téléphone.</p>
       <div class="duo">
@@ -91,6 +91,7 @@
           Partager le lien
         </button>
       </div>
+      </details>
     </div>
 
     <div class="etat zone-etat">
@@ -122,10 +123,9 @@
   <section class="ecran salle salle-invite" id="ecran-invite" data-nom="invite" hidden>
     <header class="salle-tete zone-tete">
       <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
-        <circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="4.5" stroke-linecap="round"
-                stroke-dasharray="50 69.1" transform="rotate(-90 16 16)"/>
-        <circle cx="16" cy="16" r="3.5" fill="currentColor"/>
-      </svg>
+        <circle cx="16" cy="16" r="9.5" fill="none" stroke="currentColor" stroke-opacity=".22" stroke-width="9"/>
+        <circle cx="16" cy="16" r="9.5" fill="none" stroke="currentColor" stroke-width="9" stroke-dasharray="43 59.7" transform="rotate(-90 16 16)"/>
+      </svg><span class="lecteur">Partage éphémère</span>
       <h2>Salle <span id="code-invite">482 915</span></h2>
       <button class="btn btn-second btn-sortie" id="btn-quitter" type="button">Quitter la salle</button>
       <span class="pastille"><span class="point" aria-hidden="true"></span>Connecté à l'hôte</span>
@@ -157,13 +157,14 @@
 
   <!-- ============ ÉCRAN 4 : SALLE FERMÉE ============ -->
   <section class="ecran fermee" id="ecran-fermee" data-nom="fermee" hidden>
-    <span class="respire" aria-hidden="true"></span>
+    <div class="fermee-panneau">
     <h2>La salle est fermée</h2>
     <p class="raison" id="raison"></p>
     <p class="commune">Les messages et les fichiers ont été supprimés.</p>
     <div class="fermee-boutons">
       <button class="btn btn-principal" id="btn-retour" type="button">Retour à l'accueil</button>
       <button class="btn btn-second" id="btn-nouvelle" type="button" hidden>Créer une nouvelle salle</button>
+    </div>
     </div>
   </section>
 
@@ -194,15 +195,16 @@
 <!-- PeerJS : le « standardiste » qui met les appareils en relation -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
 <!-- Notre code, rangé par sujet (l'ordre compte : le socle d'abord, les écrans à la fin) -->
-<script src="app.js?v=23"></script>
-<script src="relais.js?v=23"></script>
-<script src="connexion.js?v=23"></script>
-<script src="tuyaux.js?v=23"></script>
-<script src="messages.js?v=23"></script>
-<script src="fichiers.js?v=23"></script>
-<script src="reception.js?v=23"></script>
-<script src="ecrans.js?v=23"></script>
-<script src="inactivite.js?v=23"></script>
-<script src="installation.js?v=23"></script>
+<script src="app.js?v=24"></script>
+<script src="relais.js?v=24"></script>
+<script src="connexion.js?v=24"></script>
+<script src="tuyaux.js?v=24"></script>
+<script src="messages.js?v=24"></script>
+<script src="fichiers.js?v=24"></script>
+<script src="reception.js?v=24"></script>
+<script src="ecrans.js?v=24"></script>
+<script src="inactivite.js?v=24"></script>
+<script src="installation.js?v=24"></script>
+<script src="demarrage-monde.js?v=24"></script>
 </body>
 </html>

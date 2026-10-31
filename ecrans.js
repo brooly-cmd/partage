@@ -41,7 +41,7 @@ function dessinerQR(texte) {
     }
   }
   boite.innerHTML =
-    '<svg viewBox="0 0 ' + n + " " + n + '" shape-rendering="crispEdges" aria-hidden="true">' +
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-4 -4 ' + (n + 8) + " " + (n + 8) + '" shape-rendering="crispEdges" aria-hidden="true">' +
     '<path d="' + chemin + '"/></svg>';
   boite.setAttribute("aria-label", "QR code de la salle : " + texte);
 }
@@ -80,14 +80,14 @@ function afficherFermee(cle) {
   afficherEcran("fermee");
 }
 
-// La salle « s'éteint » d'un coup avant d'afficher l'écran fermé
-function fermerAvecEffet(cle) {
-  const salle = document.querySelector(".ecran:not([hidden])");
-  const sansAnimation = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (!salle || sansAnimation) return afficherFermee(cle);
-  salle.classList.add("dissout");
-  setTimeout(() => afficherFermee(cle), 450);
-}
+// Le décor s'éteint dans passages.js ; la vraie salle est déjà fermée.
+function fermerAvecEffet(cle) { afficherFermee(cle); }
+
+// La fiche se déplie au toucher sur téléphone, et reste ouverte sur PC.
+const partageEtroit = matchMedia('(max-width: 899px)');
+function placerFiche() { $('partage-salle').open = !partageEtroit.matches; }
+partageEtroit.addEventListener('change', placerFiche);
+placerFiche();
 
 /* ---------- Écran 1 : le champ du code (6 cases) ---------- */
 const champ = $("champ-code");

@@ -1,27 +1,25 @@
 // L'arrivée au défilement et les passages de caméra (mission 21).
-// Lenis rend le défilement doux, GSAP fait les passages ; monde.js suit (vue, lumiere, minuteur).
-// Les boutons sont factices : rien n'est envoyé, aucune vraie salle n'est créée.
+// Lenis rend le défilement doux, GSAP fait les passages ; monde.js suit (vue, lumiere).
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
-import { vue, lumiere, minuteur, reglages, pret, remettreDeFace, afficherEcran, relancerAnneau } from './monde.js';
+import './atelier.js';
+import { vue, lumiere, reglages, pret, remettreDeFace, afficherEcran } from './monde.js';
 
 gsap.registerPlugin(ScrollTrigger);
 const CALME = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const ETROIT = matchMedia('(max-width: 700px)');            // téléphone : le texte en bas, le monde en haut
+const ETROIT = matchMedia('(max-width: 899px)');            // téléphone : le texte en bas, le monde en haut
 const D = CALME ? 0.01 : 1;                                   // sans mouvement : les passages sont instantanés
 const $ = id => document.getElementById(id);
-const CODE = '482 915';
-
 // ---------- Les places de la caméra (voir vue dans monde.js) ----------
-// t1 = la platine et son monde, t2 = l'anneau du temps, t3 = l'atelier de près,
-// salle = dans la pièce, fermee = la caméra a reculé hors de la pièce éteinte.
+// t1 = la pièce seule au centre, t2 = la pièce de plus près (« Tout disparaît à la fermeture. »),
+// t3 = l'atelier de près avec les boutons, salle = dans la pièce, fermee = la caméra recule devant la pièce éteinte.
 const places = etroit => ({
-  t1: { x: 0, y: 2.4, z: 0, dist: 1, polaire: 70, azimut: 38, dx: etroit ? 0 : 0.14, dy: etroit ? 0.1 : 0 },
-  t2: { x: 0, y: 1.76, z: 0, dist: etroit ? 0.78 : 0.62, polaire: 76, azimut: 12, dx: etroit ? 0 : -0.14, dy: etroit ? 0.12 : 0 },
+  t1: { x: 0, y: 3.9, z: -0.1, dist: etroit ? 0.56 : 0.58, polaire: 72, azimut: 38, dx: etroit ? 0 : 0.2, dy: etroit ? 0.12 : 0.1 },
+  t2: { x: 0, y: 3.85, z: -0.1, dist: etroit ? 0.5 : 0.38, polaire: 68, azimut: 18, dx: etroit ? 0 : -0.16, dy: etroit ? 0.14 : 0 },
   t3: { x: 0, y: 3.75, z: -0.15, dist: etroit ? 0.42 : 0.46, polaire: 63, azimut: 42, dx: etroit ? 0 : 0.2, dy: etroit ? 0.22 : 0 },
-  salle: { x: 0.05, y: 3.98, z: -0.5, dist: etroit ? 0.24 : 0.2, polaire: 70, azimut: 40, dx: etroit ? 0 : -0.1, dy: etroit ? 0.04 : 0 },
-  fermee: { x: 0, y: 2.5, z: 0, dist: 0.8, polaire: 66, azimut: 30, dx: 0, dy: etroit ? 0.08 : 0 },
+  salle: { x: 0, y: 3.9, z: -0.1, dist: etroit ? 0.46 : 0.43, polaire: 68, azimut: 36, dx: etroit ? 0 : -0.05, dy: etroit ? 0.06 : 0 },
+  fermee: { x: 0, y: 3.9, z: -0.1, dist: etroit ? 0.7 : 0.5, polaire: 70, azimut: 30, dx: 0, dy: etroit ? 0.08 : 0 },
 });
 const PLACES = { large: places(false), etroit: places(true) };
 
@@ -43,12 +41,11 @@ function viser() {
 // ---------- Le défilement doux (Lenis) relié à GSAP ----------
 history.scrollRestoration = 'manual';
 scrollTo(0, 0);
-const lenis = new Lenis({ duration: 1.2, smoothWheel: !CALME, prevent: () => false,
+const lenis = new Lenis({ duration: 1.2, smoothWheel: !CALME, prevent: node => node.closest('.fil, dialog, textarea'),
   easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)) });
 lenis.on('scroll', ScrollTrigger.update);
 gsap.ticker.add(time => { lenis.raf(time * 1000); viser(); });
 gsap.ticker.lagSmoothing(0);
-lenis.stop();                                                 // pas de défilement pendant le chargement
 
 ScrollTrigger.create({ trigger: '#histoire', start: 'top top', end: 'bottom bottom',
   onUpdate: s => { etat.histoire = s.progress * 2; } });
@@ -64,79 +61,68 @@ textes.forEach((section, n) => {
   } });
 });
 
-pret.then(async () => {
-  await document.fonts.ready;
-  ScrollTrigger.refresh();
-  lenis.start();
-});
+pret.then(() => ScrollTrigger.refresh());
+document.fonts.ready.then(() => ScrollTrigger.refresh());
 
-// ---------- Les passages ----------
-let passage = null;                                            // le passage en cours (un seul à la fois)
-const jouer = tl => { passage?.progress(1); passage = tl; return tl; };
-const fige = oui => {                                          // dans la salle, la page ne défile pas
+// Les boutons sont branchés une seule fois, dans ecrans.js : ici, on écoute leur résultat.
+let passage = null;
+let courant = 'accueil';
+const fige = oui => {
   oui ? lenis.stop() : lenis.start();
   reglages.tourner = !oui;
   document.documentElement.classList.toggle('fige', oui);
 };
-
-function entrer(invite) {
-  fige(true);
-  remettreDeFace();
-  $('titre-salle').textContent = invite ? `Salle ${CODE} · Connecté à l'hôte` : 'Ta salle';
-  $('sortir').textContent = invite ? 'Quitter la salle' : 'Fermer la salle';
-  $('sortir').className = invite ? 'secondaire' : 'danger';
-  $('panneau-code').hidden = invite;
-  $('sortir').dataset.invite = invite ? '1' : '';
-  jouer(gsap.timeline({ defaults: { ease: 'power3.out' } })
-    .to('#histoire', { autoAlpha: 0, duration: 0.5 * D }, 0)
-    .to(etat, { salle: 1, duration: 1.4 * D }, 0)
-    .to(lumiere, { piece: 1, duration: 1 * D }, 0.5 * D)       // la lampe et l'écran s'allument
-    .call(() => afficherEcran(invite ? ['Salle', CODE] : [CODE], invite ? 38 : 64), null, 0.6 * D)
-    .call(relancerAnneau, null, 0.7 * D)                        // l'anneau se remplit d'un coup puis se vide
-    .to('#salle', { autoAlpha: 1, duration: 0.8 * D }, 1.2 * D));
+function changer(nom, initial = false) {
+  if (nom === courant && !initial) return;
+  passage?.kill();
+  document.querySelectorAll('.ecran').forEach(e => { e.inert = false; e.style.opacity = ''; });
+  const avant = courant;
+  courant = nom;
+  fige(nom !== 'accueil');
+  reglages.zoom = nom === 'hote' || nom === 'invite';   // dans la salle, on peut zoomer
+  const panneau = $('ecran-' + nom);
+  const tl = passage = gsap.timeline({ defaults: { ease: 'power3.out' } });
+  if (nom === 'hote' || nom === 'invite') {
+    if (document.activeElement?.matches('input, textarea')) document.activeElement.blur();
+    etat.histoire = 2;
+    remettreDeFace();
+    const code = nom === 'hote' ? $('plaques-hote').getAttribute('aria-label').split(': ')[1] : $('code-invite').textContent;
+    afficherEcran(nom === 'hote' ? [code] : ['Salle', code], nom === 'hote' ? 64 : 38);
+    panneau.inert = true;
+    tl.set(panneau, { opacity: 0 })
+      .to(etat, { salle: 1, ferme: 0, duration: 1.4 * D }, 0)
+      .to(lumiere, { piece: 1, allume: 1, duration: D }, 0)
+      .to(panneau, { opacity: 1, duration: 0.8 * D }, 1.2 * D)
+      .call(() => {
+        panneau.inert = false;
+        const titre = panneau.querySelector('h2');
+        titre.tabIndex = -1; titre.focus({ preventScroll: true });
+      });
+  } else if (nom === 'fermee') {
+    panneau.inert = true;
+    tl.set(panneau, { opacity: 0 })
+      .to(etat, { ferme: 1, duration: 1.6 * D, ease: 'power3.inOut' }, 0)
+      .to(lumiere, { allume: 0, duration: 1.2 * D }, 0.2 * D)
+      .call(() => afficherEcran([]), null, 0.9 * D)
+      .to(panneau, { opacity: 1, duration: 0.8 * D }, 1.4 * D)
+      .call(() => { panneau.inert = false; $('btn-retour').focus({ preventScroll: true }); });
+  } else {
+    afficherEcran(['Partage', 'éphémère']);
+    if (!initial || avant !== 'accueil') allerAuxBoutons();
+    tl.to(etat, { salle: 0, ferme: 0, duration: 1.4 * D }, 0)
+      .to(lumiere, { piece: 0, allume: 1, duration: D }, 0);
+  }
 }
-
-function revenir() {                                           // la caméra ressort et revient au 3e temps
-  const tl = jouer(gsap.timeline({ defaults: { ease: 'power3.out' } }));
-  // depuis « Salle fermée », on part de la place fermee ; depuis la salle (Quitter), de la pièce
-  if (etat.ferme > 0) tl.set(etat, { salle: 0 }, 0).to(etat, { ferme: 0, duration: 1.4 * D }, 0);
-  else tl.to(etat, { salle: 0, duration: 1.4 * D }, 0);
-  tl.to(['#salle', '#fermee'], { autoAlpha: 0, duration: 0.4 * D }, 0)
-    .to(lumiere, { piece: 0, allume: 1, point: 0, duration: 1 * D }, 0)
-    .call(() => { afficherEcran(['Partage', 'éphémère']); relancerAnneau(); }, null, 0.3 * D)
-    .to('#histoire', { autoAlpha: 1, duration: 0.8 * D }, 1 * D)
-    .call(() => fige(false), null, 1 * D);
+function allerAuxBoutons() {
+  if (courant !== 'accueil') return;
+  lenis.resize();
+  ScrollTrigger.refresh();
+  lenis.scrollTo($('t3'), { immediate: true });
+  etat.histoire = 2;
 }
-
-function fermer() {                                            // la pièce s'éteint et se vide
-  jouer(gsap.timeline({ defaults: { ease: 'power3.out' } })
-    .to('#salle', { autoAlpha: 0, duration: 0.4 * D }, 0)
-    .call(() => { minuteur.demo = false; minuteur.valeur = 0; }, null, 0)
-    .to(etat, { ferme: 1, duration: 1.6 * D, ease: 'power3.inOut' }, 0)
-    .to(lumiere, { allume: 0, duration: 1.2 * D }, 0.2 * D)
-    .call(() => afficherEcran([]), null, 0.9 * D)
-    .to(lumiere, { point: 1, duration: 0.8 * D }, 1.2 * D)
-    .to('#fermee', { autoAlpha: 1, duration: 0.8 * D }, 1.4 * D));
-}
-
-function rouvrir() {                                           // « Créer une nouvelle salle » : on rentre
-  afficherEcran([CODE], 64);
-  relancerAnneau();
-  jouer(gsap.timeline({ defaults: { ease: 'power3.out' } })
-    .to('#fermee', { autoAlpha: 0, duration: 0.4 * D }, 0)
-    .to(lumiere, { allume: 1, point: 0, duration: 1 * D }, 0.2 * D)
-    .to(etat, { ferme: 0, duration: 1.4 * D }, 0)
-    .to('#salle', { autoAlpha: 1, duration: 0.8 * D }, 1.2 * D));
-}
-
-// ---------- Les boutons factices ----------
-$('creer').addEventListener('click', () => entrer(false));
-$('rejoindre').addEventListener('submit', e => {
-  e.preventDefault();
-  const code = $('code').value.replace(/\D/g, '');
-  $('erreur').textContent = code.length === 6 ? '' : 'Le code contient 6 chiffres.';
-  if (code.length === 6) { $('code').blur(); entrer(true); }
-});
-$('sortir').addEventListener('click', () => $('sortir').dataset.invite ? revenir() : fermer());
-$('retour').addEventListener('click', revenir);
-$('nouvelle').addEventListener('click', rouvrir);
+document.addEventListener('partage:ecran', e => changer(e.detail.nom));
+changer(document.body.dataset.ecran, true);
+// Un lien QR erroné doit montrer l'erreur au lieu de laisser le visiteur au premier temps.
+new MutationObserver(() => { if (!$('erreur-code').hidden) allerAuxBoutons(); })
+  .observe($('erreur-code'), { attributes: true, childList: true });
+if (!$('erreur-code').hidden) allerAuxBoutons();
