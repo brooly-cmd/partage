@@ -1,5 +1,12 @@
 // Diagnostic temporaire (seulement avec ?diag dans l'adresse) : affiche en haut de l'écran
 // les erreurs et l'état des panneaux de la salle, pour comprendre un souci vu sur iPhone.
+// Essais de correction, choisis par l'adresse : ?diag&f=sans-verre ou ?diag&f=calque
+const essai = new URLSearchParams(location.search).get('f');
+const essais = {
+  'sans-verre': '*{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}',
+  'calque': '.app{min-height:100dvh}.salle,.fermee{z-index:2;transform:translateZ(0)}.ecran{opacity:1!important}',
+};
+if (essais[essai]) document.head.append(Object.assign(document.createElement('style'), { textContent: essais[essai] }));
 const boite = document.createElement('pre');
 boite.style.cssText = 'position:fixed;z-index:99;top:0;left:0;right:0;margin:0;padding:6px;max-height:45vh;overflow:hidden;' +
   'font:10px/1.3 monospace;background:rgba(255,255,0,.92);color:#000;pointer-events:none;white-space:pre-wrap';
@@ -17,7 +24,7 @@ setInterval(() => {
   const ecran = document.body.dataset.ecran;
   const p = document.getElementById('ecran-' + ecran);
   const lignes = [navigator.userAgent.replace(/.*(iPhone OS [\d_]+).*Version\/([\d.]+).*/, '$1 Safari $2'),
-    'ecran=' + ecran + ' images/s=' + images + ' vue=' + innerWidth + 'x' + innerHeight];
+    'essai=' + (essai || 'aucun') + ' ecran=' + ecran + ' images/s=' + images + ' vue=' + innerWidth + 'x' + innerHeight];
   images = 0;
   if (p) {
     const s = getComputedStyle(p), r = p.getBoundingClientRect();

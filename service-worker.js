@@ -1,5 +1,5 @@
 ﻿/* Seuls les fichiers de l'app sont mis en cache. Jamais les salles, textes ou fichiers reçus. */
-const VERSION = 'partage-ephemere-m22c-v29';
+const VERSION = 'partage-ephemere-m22c-v30';
 const FICHIERS = [
   './', 'index.html', 'style.css', 'minuit.css', 'app.js', 'connexion.js', 'tuyaux.js',
   'relais.js', 'messages.js', 'fichiers.js', 'reception.js', 'ecrans.js', 'inactivite.js',
