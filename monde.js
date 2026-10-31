@@ -13,6 +13,7 @@ import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { creerObjets } from './objets.js';
 import { creerDecor } from './decor.js';
+import { creerFenetre } from './fenetre.js';
 
 const DOSSIER = '3d/';
 const TELEPHONE = matchMedia('(pointer: coarse)').matches;
@@ -60,7 +61,9 @@ const envPret = new RGBELoader(gestion).loadAsync(DOSSIER + 'studio_small_09_1k.
   scene.environment = pmrem.fromEquirectangular(hdr).texture;
   hdr.dispose(); pmrem.dispose();
 });
-const modelePret = new GLTFLoader(gestion).setDRACOLoader(draco).loadAsync(DOSSIER + 'atelier.glb');
+const chargeur = new GLTFLoader(gestion).setDRACOLoader(draco);
+const modelePret = chargeur.loadAsync(DOSSIER + 'atelier.glb');
+const personnagePret = chargeur.loadAsync(DOSSIER + 'personnage.glb');
 
 // ---------- L'écran bombé de l'ordinateur : une image dessinée qui brille ----------
 const toile = document.createElement('canvas');
@@ -101,7 +104,9 @@ const nacre = () => {
   };
   return m;
 };
+const fenetre = creerFenetre({ calme: CALME });
 const matieres = {
+  vitre: fenetre.matiere,
   laque: new THREE.MeshPhysicalMaterial({ color: 0x111112, roughness: 0.2, clearcoat: 1, clearcoatRoughness: 0.04 }),
   alu: new THREE.MeshPhysicalMaterial({ color: 0xc8cacd, metalness: 1, roughness: 0.32 }),
   parquet: new THREE.MeshStandardMaterial({ map: bois, color: 0xd9cfc4, roughness: 0.62 }),
@@ -112,7 +117,6 @@ const matieres = {
   ecran: new THREE.MeshPhysicalMaterial({ color: 0x0c140e, emissive: 0xffffff, emissiveMap: texteEcran,
     emissiveIntensity: 1.2, roughness: 0.08, clearcoat: 1 }),
   ampoule: new THREE.MeshStandardMaterial({ color: 0xfff1d6, emissive: 0xffd9a0, emissiveIntensity: 0 }),
-  vitre: new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xdfe9f2, emissiveIntensity: 1, roughness: 0.1 }),
   cadre: new THREE.MeshStandardMaterial({ color: 0xf6f4ef, roughness: 0.4 }),
   noir: new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5 }),
   terre: new THREE.MeshStandardMaterial({ color: 0xc9744f, roughness: 0.85 }),
@@ -146,11 +150,11 @@ const base = {};                                  // les valeurs du jour ou de l
 function reglerJourNuit() {
   const nuit = NUIT.matches;
   decor.regler(nuit);
+  fenetre.regler(nuit);
   Object.assign(base, { env: nuit ? 0.28 : 1, soleil: nuit ? (TELEPHONE ? 0 : 0.15) : 1.0,
-    lampe: nuit ? 4 : 0, lampeSalle: nuit ? 5 : 3, ampoule: nuit ? 2 : 0.2, vitre: nuit ? 0.7 : 1.1 });
+    lampe: nuit ? 4 : 0, lampeSalle: nuit ? 5 : 3, ampoule: nuit ? 2 : 0.2, vitre: nuit ? 0.85 : 0.9 });
   soleil.color.set(nuit ? 0xb8c4ff : 0xfff6ec);
   arriere.intensity = nuit && !TELEPHONE ? 8 : 0;
-  matieres.vitre.emissive.set(nuit ? 0x1c2a4a : 0xdfe9f2);
 }
 function appliquerLumieres() {
   const { piece, allume } = lumiere;
@@ -160,7 +164,7 @@ function appliquerLumieres() {
   lampe.intensity = amortir(base.lampe, base.lampeSalle, piece) * allume * vacille;
   matieres.ampoule.emissiveIntensity = amortir(base.ampoule, 2.5, piece) * allume * vacille;
   matieres.ecran.emissiveIntensity = (0.7 + 0.7 * piece) * allume;
-  matieres.vitre.emissiveIntensity = base.vitre * (0.5 + 0.5 * allume);
+  fenetre.image(horloge.elapsedTime, base.vitre * (0.5 + 0.5 * allume));
 }
 reglerJourNuit();
 NUIT.addEventListener('change', reglerJourNuit);
@@ -203,6 +207,9 @@ modelePret.then(gltf => {
   const sens = new THREE.Vector3(0, -1, 0).applyQuaternion(abatjour.getWorldQuaternion(new THREE.Quaternion()));
   lampe.target.position.copy(lampe.position).addScaledVector(sens, 1.2);
   monde.add(lampe, lampe.target);
+  // La vitre : le dehors est à l'opposé du milieu de la pièce
+  atelier.updateMatrixWorld(true);
+  fenetre.placer(atelier.getObjectByName('Vitre'), new THREE.Box3().setFromObject(atelier.getObjectByName('Plancher')).getCenter(new THREE.Vector3()));
 });
 
 // ---------- Retouche d'image légère (PC seulement) : lueur, grain, vignette ----------
@@ -304,7 +311,7 @@ const compteur = new URLSearchParams(location.search).has('fps') ? document.body
 let images = 0, depuis = performance.now();
 
 function image() {
-  horloge.getDelta();
+  const delta = horloge.getDelta();
   const t = horloge.elapsedTime;
 
   // Le doigt ou la souris fait tourner la pièce, avec un peu d'élan
@@ -342,7 +349,7 @@ function image() {
 
   appliquerLumieres();
   decor.image(t, lumiere.allume, camera.position.distanceTo(regard));
-  objets.image(t);
+  objets.image(t, delta);
 
   // Le curseur de l'écran clignote
   const visible = Math.floor(t * 1.6) % 2 === 0;
@@ -362,7 +369,18 @@ function demarrer() { horloge.getDelta(); renderer.setAnimationLoop(image); }
 document.addEventListener('visibilitychange', () => document.hidden ? renderer.setAnimationLoop(null) : demarrer());
 
 // Tout est chargé : on prépare les matières (pas d'à-coup), puis la scène apparaît en fondu
-export const pret = Promise.all([envPret, modelePret]).then(async () => {
+export const pret = Promise.all([envPret, modelePret, personnagePret]).then(async ([, , gltf]) => {
+  const personnage = gltf.scene;
+  const apercus = new Set();
+  personnage.traverse(o => {
+    if (!o.isMesh) return;
+    apercus.add(o.material);
+    o.material = o.material.name === 'nacre' ? nacre() : matieres[o.material.name];
+    o.castShadow = o.receiveShadow = true;
+  });
+  apercus.forEach(m => m.dispose());
+  objets.peupler(personnage, gltf.animations);
+  draco.dispose();
   await renderer.compileAsync(scene, camera);
   renderer.shadowMap.needsUpdate = true;
   demarrer();

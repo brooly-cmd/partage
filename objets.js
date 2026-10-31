@@ -46,11 +46,34 @@ export function creerObjets(piece, renderer, nacre) {
   piece.add(fiche);
   let dernierQR = '', generationQR = 0;
 
-  const billes = Array.from({ length: 7 }, () => {
-    const bille = new THREE.Mesh(new THREE.SphereGeometry(0.06, 32, 24),
-      new THREE.MeshPhysicalMaterial({ color: 0xff5a1f, clearcoat: 1, roughness: 0.2 }));
-    bille.visible = false; piece.add(bille); return bille;
-  });
+  const occupations = [];
+  const places = Array(7).fill(null);
+  let invites = [], mixeur = null, ombreSale = false, derniereOmbre = -Infinity;
+  function placer(v) {
+    v.objet.scale.setScalar(v.avance);
+    ombreSale = true;
+  }
+  function presence(liste) {
+    invites = [...new Set(liste)].filter(Boolean).slice(0, 7);
+    places.forEach((nom, i) => { if (!invites.includes(nom)) places[i] = null; });
+    invites.forEach(nom => {
+      if (!places.includes(nom)) places[places.indexOf(null)] = nom;
+    });
+    occupations.forEach((v, i) => {
+      const invite = places[i], present = invite !== null;
+      if (v.invite === invite) return;
+      gsap.killTweensOf(v);
+      // Un départ et une arrivée lus ensemble font apparaître la nouvelle personne à sa place.
+      if (present && v.invite !== null) { v.avance = 0; placer(v); }
+      v.invite = invite;
+      if (present) v.objet.visible = true;
+      if (CALME) {
+        v.avance = present ? 1 : 0; v.objet.visible = present; placer(v);
+      } else gsap.to(v, { avance: present ? 1 : 0, duration: 0.6, ease: 'power3.out',
+        onUpdate: () => placer(v),
+        onComplete: () => { v.objet.visible = v.invite !== null; placer(v); } });
+    });
+  }
 
   function fabriquer(m) {
     const objet = new THREE.Group();
@@ -87,6 +110,20 @@ export function creerObjets(piece, renderer, nacre) {
   }
 
   return {
+    peupler(modele, animations) {
+      if (occupations.length) return;
+      piece.add(modele);  // les sept occupations gardent les positions et orientations du GLB
+      for (let i = 1; i <= 7; i++) {
+        const objet = modele.getObjectByName('Occupation_' + i);
+        objet.scale.setScalar(0); objet.visible = false;
+        occupations.push({ objet, avance: 0, invite: null });
+      }
+      if (!CALME) {
+        mixeur = new THREE.AnimationMixer(modele);
+        animations.forEach(clip => mixeur.clipAction(clip).setLoop(THREE.LoopRepeat, Infinity).play());
+      }
+      presence(invites);  // une arrivée peut précéder le chargement du modèle
+    },
     reflet(messages) {
       disparition?.progress(1); disparition = null;
       const six = messages.slice(-6);
@@ -121,10 +158,10 @@ export function creerObjets(piece, renderer, nacre) {
       // Le même QR que le panneau HTML, avec son fond blanc et sa marge de quatre modules.
       image.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg.replace('<path ', '<path fill="#111" '));
     },
-    presence(n) { billes.forEach((b, i) => { b.visible = i < n; }); },
+    presence,
     vider() {
       disparition?.progress(1);
-      this.qr(''); this.presence(0);
+      this.qr(''); this.presence([]);
       const anciens = [...vivants.values()]; vivants.clear();
       anciens.forEach(v => gsap.killTweensOf(v));
       const fondu = { valeur: 1 };
@@ -135,7 +172,7 @@ export function creerObjets(piece, renderer, nacre) {
           renderer.shadowMap.needsUpdate = true;
         } });
     },
-    image(t) {
+    image(t, delta = 0) {
       for (const v of vivants.values()) {
         // Petite pile décalée dans l'espace libre devant les CD, sans traverser le clavier.
         const hauteur = v.arc ? 3.901 : 3.902;  // bas du CD (biseau compris) ou du papier sur le plateau
@@ -148,11 +185,13 @@ export function creerObjets(piece, renderer, nacre) {
         v.part = CALME ? v.cible : v.part + (v.cible - v.part) * 0.08;
         if (v.arc) v.arc.geometry.setDrawRange(0, Math.floor(v.part * 96) * 6);
       }
-      billes.forEach((b, i) => {
-        // Rayon 2,2 : au-delà des coins de la pièce (2,12 de côté), même avec le rayon des billes.
-        const a = i * Math.PI * 2 / 7 + (CALME ? 0 : t * 0.12);
-        b.position.set(Math.cos(a) * 2.2, 3.5 + Math.sin(a) * 0.12, Math.sin(a) * 2.2);
-      });
+      const anime = mixeur && occupations.some(v => v.objet.visible);
+      if (anime) mixeur.update(delta);
+      // Dix calculs d'ombre par seconde, fondus compris ; le dernier efface aussi les ombres au départ.
+      if ((ombreSale || anime) && t - derniereOmbre >= 0.1) {
+        renderer.shadowMap.needsUpdate = true;
+        derniereOmbre = t; ombreSale = false;
+      }
     },
   };
 }

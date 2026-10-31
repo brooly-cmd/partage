@@ -24,11 +24,16 @@ function reflet() {
   precedents = messages.map(({ id, signature }) => ({ id, signature }));
   objets.reflet(messages);
   objets.qr(role === 'hote' ? document.querySelector('#qr svg')?.outerHTML || '' : '');
-  objets.presence(Number.parseInt(document.getElementById('nombre-' + role).textContent, 10) || 0);
+  // L'hôte affiche les noms exacts ; côté invité, seul le nombre est transmis à la page.
+  const invites = role === 'hote'
+    ? [...document.querySelectorAll('#liste-invites .pers')].map(p => p.title)
+    : Array.from({ length: Math.min(7, Number.parseInt(document.getElementById('nombre-invite').textContent, 10) || 0) },
+      (_, i) => 'place-' + (i + 1));
+  objets.presence(invites);
 }
-document.querySelectorAll('.fil, #qr, #nombre-hote, #nombre-invite').forEach(element => {
+document.querySelectorAll('.fil, #qr, #nombre-hote, #nombre-invite, #liste-invites').forEach(element => {
   new MutationObserver(reflet).observe(element, { childList: true, subtree: true,
-    attributes: true, attributeFilter: ['data-pourcent'], characterData: true });
+    attributes: true, attributeFilter: ['data-pourcent', 'title'], characterData: true });
 });
 document.addEventListener('partage:ecran', e => {
   if (e.detail.nom === 'hote' || e.detail.nom === 'invite') reflet();
