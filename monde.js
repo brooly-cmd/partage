@@ -71,6 +71,7 @@ const envPret = new RGBELoader(gestion).loadAsync(DOSSIER + 'studio_small_09_1k.
 const chargeur = new GLTFLoader(gestion).setDRACOLoader(draco);
 const modelePret = chargeur.loadAsync(DOSSIER + 'atelier.glb');
 const personnagePret = chargeur.loadAsync(DOSSIER + 'personnage.glb');
+const signesPret = chargeur.loadAsync(DOSSIER + 'signes.glb');
 
 // ---------- L'écran bombé de l'ordinateur : une image dessinée qui brille ----------
 const toile = document.createElement('canvas');
@@ -419,16 +420,19 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // Tout est chargé : on prépare les matières (pas d'à-coup), puis la scène apparaît en fondu
-export const pret = Promise.all([envPret, modelePret, personnagePret]).then(async ([, , gltf]) => {
+export const pret = Promise.all([envPret, modelePret, personnagePret, signesPret]).then(async ([, , gltf, signes]) => {
   const personnage = gltf.scene;
   const apercus = new Set();
   personnage.traverse(o => {
     if (!o.isMesh) return;
-    apercus.add(o.material);
-    o.material = o.material.name === 'nacre' ? nacre() : matieres[o.material.name];
+    if (o.material.name !== 'haut') {
+      apercus.add(o.material);
+      o.material = o.material.name === 'nacre' ? nacre() : matieres[o.material.name];
+    }
     o.castShadow = o.receiveShadow = true;
   });
   apercus.forEach(m => m.dispose());
+  objets.signer(signes.scene);
   objets.peupler(personnage, gltf.animations);
   draco.dispose();
   await renderer.compileAsync(scene, camera);

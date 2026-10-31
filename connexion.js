@@ -190,18 +190,27 @@ function texteNombre(n) {
 }
 function majPresence() {
   const n = etat.invites.length;
+  const prises = new Set(etat.invites.map(i => i.place));
+  etat.invites.forEach(i => {
+    if (i.place) return;
+    i.place = 1;
+    while (prises.has(i.place)) i.place++;
+    prises.add(i.place);
+  });
   $("nombre-hote").textContent = texteNombre(n);
   $("invites-hote").hidden = n === 0;
   // Une pastille ronde par invité (« I1 »), avec le nom complet pour les lecteurs d'écran
   $("liste-invites").replaceChildren(...etat.invites.map((i) => {
     const pastille = creer("span", "pers");
     pastille.title = i.nom;
+    pastille.dataset.place = i.place;
     const court = creer("span", "", i.nom.replace("Invité ", "I"));
     court.setAttribute("aria-hidden", "true");
     pastille.append(court, creer("span", "lecteur", i.nom));
     return pastille;
   }));
-  envoyerA(autresInvites(), { type: "nombre", n });
+  envoyerA(autresInvites(), { type: "nombre", n,
+    noms: etat.invites.map(i => i.nom), places: etat.invites.map(i => i.place) });
 }
 
 // L'hôte ferme : il prévient les invités (avec la raison), puis raccroche
@@ -253,6 +262,8 @@ function rejoindreSalle(code) {
       if (etat.peer !== peer || !msg) return;
       if (msg.type === "pleine") echec("pleine");
       if (msg.type === "bienvenue") {
+        delete $("nombre-invite").dataset.noms;
+        delete $("nombre-invite").dataset.places;
         entre = true;
         clearTimeout(minuteur);
         occuper(bouton, false);
@@ -261,7 +272,14 @@ function rejoindreSalle(code) {
         ouvrirSalleInvite(code);
         ouvrirRenforts(peer, code, conn);
       }
-      if (msg.type === "nombre") $("nombre-invite").textContent = texteNombre(msg.n);
+      if (msg.type === "nombre") {
+        const compteur = $("nombre-invite");
+        if (Array.isArray(msg.noms)) compteur.dataset.noms = JSON.stringify(msg.noms);
+        else delete compteur.dataset.noms;
+        if (Array.isArray(msg.places)) compteur.dataset.places = JSON.stringify(msg.places);
+        else delete compteur.dataset.places;
+        compteur.textContent = texteNombre(msg.n);
+      }
       if (msg.type === "minuteur" && typeof msg.reste === "number") recevoirMinuteur(msg.reste);
       // « de » : le nom de l'invité qui a écrit, quand l'hôte fait suivre son message
       const de = typeof msg.de === "string" ? msg.de : "Hôte";

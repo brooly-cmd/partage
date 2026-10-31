@@ -48,18 +48,38 @@ export function creerObjets(piece, renderer, nacre, redessiner = () => {}) {
 
   const occupations = [];
   const places = Array(7).fill(null);
-  let invites = [], mixeur = null, ombreSale = false, derniereOmbre = -Infinity;
+  let invites = [], signes = null, mixeur = null, ombreSale = false, derniereOmbre = -Infinity;
+  function habiller(v, i) {
+    v.signe?.removeFromParent(); v.signe = null;
+    v.haut.color.copy(v.defaut);
+    const numero = /^Invité ([1-9]\d*)$/.exec(v.invite)?.[1];
+    const modele = numero && signes?.getObjectByName('Signe_' + ((Number(numero) - 1) % 7 + 1));
+    if (modele) {
+      v.signe = modele.clone(); // formes et matières partagées, seule l'attache est copiée
+      v.objet.getObjectByName(modele.userData.os + '_' + (i + 1)).add(v.signe);
+      v.haut.color.set(modele.userData.haut);
+    }
+    ombreSale = true;
+    redessiner();
+  }
   function placer(v) {
     v.objet.scale.setScalar(v.avance);
     ombreSale = true;
     redessiner();
   }
-  function presence(liste) {
+  function presence(liste, attributions) {
     invites = [...new Set(liste)].filter(Boolean).slice(0, 7);
-    places.forEach((nom, i) => { if (!invites.includes(nom)) places[i] = null; });
-    invites.forEach(nom => {
-      if (!places.includes(nom)) places[places.indexOf(null)] = nom;
-    });
+    if (Array.isArray(attributions) && attributions.length === invites.length
+      && new Set(attributions).size === invites.length
+      && attributions.every(p => Number.isInteger(p) && p >= 1 && p <= 7)) {
+      places.fill(null);
+      invites.forEach((nom, i) => { places[attributions[i] - 1] = nom; });
+    } else {
+      places.forEach((nom, i) => { if (!invites.includes(nom)) places[i] = null; });
+      invites.forEach(nom => {
+        if (!places.includes(nom)) places[places.indexOf(null)] = nom;
+      });
+    }
     occupations.forEach((v, i) => {
       const invite = places[i], present = invite !== null;
       if (v.invite === invite) return;
@@ -67,12 +87,18 @@ export function creerObjets(piece, renderer, nacre, redessiner = () => {}) {
       // Un départ et une arrivée lus ensemble font apparaître la nouvelle personne à sa place.
       if (present && v.invite !== null) { v.avance = 0; placer(v); }
       v.invite = invite;
+      if (present) habiller(v, i); // celui qui part garde sa tenue pendant son fondu
       if (present) v.objet.visible = true;
+      const terminer = () => {
+        v.objet.visible = v.invite !== null;
+        if (!v.objet.visible) habiller(v, i);
+        placer(v);
+      };
       if (CALME) {
-        v.avance = present ? 1 : 0; v.objet.visible = present; placer(v);
+        v.avance = present ? 1 : 0; terminer();
       } else gsap.to(v, { avance: present ? 1 : 0, duration: 0.6, ease: 'power3.out',
         onUpdate: () => placer(v),
-        onComplete: () => { v.objet.visible = v.invite !== null; placer(v); } });
+        onComplete: terminer });
     });
   }
 
@@ -114,16 +140,31 @@ export function creerObjets(piece, renderer, nacre, redessiner = () => {}) {
     peupler(modele, animations) {
       if (occupations.length) return;
       piece.add(modele);  // les sept occupations gardent les positions et orientations du GLB
+      const originaux = new Set();
       for (let i = 1; i <= 7; i++) {
         const objet = modele.getObjectByName('Occupation_' + i);
         objet.scale.setScalar(0); objet.visible = false;
-        occupations.push({ objet, avance: 0, invite: null });
+        let haut;
+        objet.traverse(o => {
+          if (!o.isMesh || o.material.name !== 'haut') return;
+          originaux.add(o.material);
+          haut ||= o.material.clone(); // une matière par occupation, commune au torse et aux bras
+          o.material = haut;
+        });
+        occupations.push({ objet, haut, defaut: haut.color.clone(), signe: null, avance: 0, invite: null });
       }
+      originaux.forEach(m => m.dispose());
       if (!CALME) {
         mixeur = new THREE.AnimationMixer(modele);
         animations.forEach(clip => mixeur.clipAction(clip).setLoop(THREE.LoopRepeat, Infinity).play());
       }
       presence(invites);  // une arrivée peut précéder le chargement du modèle
+    },
+    signer(modele) {
+      if (signes) return;
+      signes = modele;
+      signes.traverse(o => { if (o.isMesh) o.castShadow = o.receiveShadow = true; });
+      occupations.forEach(habiller); // les attributions déjà reçues prennent leur tenue
     },
     reflet(messages) {
       disparition?.progress(1); disparition = null;
